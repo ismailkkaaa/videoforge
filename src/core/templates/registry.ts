@@ -1,4 +1,10 @@
 import { TitleCardTemplate } from '../../templates-builtin/title-card/index.js';
+import { FeatureGridTemplate } from '../../templates-builtin/feature-grid/index.js';
+import { CodeSnippetTemplate } from '../../templates-builtin/code-snippet/index.js';
+import { LogoRevealTemplate } from '../../templates-builtin/logo-reveal/index.js';
+import { StatCounterTemplate } from '../../templates-builtin/stat-counter/index.js';
+import { QuoteTemplate } from '../../templates-builtin/quote/index.js';
+import { OutroTemplate } from '../../templates-builtin/outro/index.js';
 import type { VideoForgeTemplate } from './types.js';
 
 /**
@@ -6,6 +12,12 @@ import type { VideoForgeTemplate } from './types.js';
  */
 export const templateRegistry: Record<string, new () => VideoForgeTemplate> = {
   'title-card': TitleCardTemplate,
+  'feature-grid': FeatureGridTemplate,
+  'code-snippet': CodeSnippetTemplate,
+  'logo-reveal': LogoRevealTemplate,
+  'stat-counter': StatCounterTemplate,
+  quote: QuoteTemplate,
+  outro: OutroTemplate,
 };
 
 /**

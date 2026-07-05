@@ -73,6 +73,7 @@ export async function captureFrames(
         const html = `<!DOCTYPE html>
 <html>
 <head>
+  <link rel="stylesheet" href="/node_modules/prismjs/themes/prism-tomorrow.css">
   <style>
     body, html {
       margin: 0;
@@ -92,6 +93,7 @@ export async function captureFrames(
 <body>
   <div id="container"></div>
   <script src="/node_modules/gsap/dist/gsap.min.js"></script>
+  <script src="/node_modules/prismjs/prism.js"></script>
 </body>
 </html>`;
         route.fulfill({
@@ -100,6 +102,25 @@ export async function captureFrames(
           body: html,
         });
         return;
+      }
+
+      if (pathname === '/logo' && config.theme.logoPath) {
+        const logoFullPath = path.resolve(process.cwd(), config.theme.logoPath);
+        if (fs.existsSync(logoFullPath)) {
+          const ext = path.extname(logoFullPath).toLowerCase();
+          const mime =
+            ext === '.png'
+              ? 'image/png'
+              : ext === '.jpg' || ext === '.jpeg'
+                ? 'image/jpeg'
+                : 'image/svg+xml';
+          route.fulfill({
+            status: 200,
+            contentType: mime,
+            body: fs.readFileSync(logoFullPath),
+          });
+          return;
+        }
       }
 
       if (pathname.startsWith('/node_modules/')) {

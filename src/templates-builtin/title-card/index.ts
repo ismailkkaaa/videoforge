@@ -35,7 +35,7 @@ export class TitleCardTemplate implements VideoForgeTemplate {
 
     // Title
     const titleEl = document.createElement('h1');
-    titleEl.innerText = typeof data.title === 'string' ? data.title : 'VideoForge';
+    titleEl.textContent = typeof data.title === 'string' ? data.title : 'VideoForge';
     titleEl.style.fontSize = '64px';
     titleEl.style.margin = '0 0 20px 0';
     titleEl.style.fontWeight = 'bold';
@@ -44,7 +44,7 @@ export class TitleCardTemplate implements VideoForgeTemplate {
     // Subtitle
     if (data.subtitle) {
       const subtitleEl = document.createElement('p');
-      subtitleEl.innerText = String(data.subtitle);
+      subtitleEl.textContent = String(data.subtitle);
       subtitleEl.style.fontSize = '32px';
       subtitleEl.style.margin = '0';
       subtitleEl.style.opacity = '0.8';
