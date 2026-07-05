@@ -14,4 +14,12 @@ export { registerTemplate, getTemplate, templateRegistry } from './core/template
 export type { VideoForgeTemplate } from './core/templates/types.js';
 
 export { VideoForgeError, ConfigValidationError, RenderError } from './core/errors.js';
+
+export { AnthropicProvider } from './ai/providers/anthropic.js';
+export type { LLMProvider } from './ai/providers/types.js';
+export { generateStoryboard } from './ai/storyboard-generator.js';
+export { analyzeMarkdown } from './ai/analyzers/markdown.js';
+export { analyzeGithubRepo } from './ai/analyzers/github-repo.js';
+export { analyzeUrl } from './ai/analyzers/url.js';
+
 export const VERSION = '0.1.0';
