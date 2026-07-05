@@ -3,6 +3,7 @@
  */
 
 export { loadConfig } from './core/config/loader.js';
+export { initProject } from './core/config/scaffold.js';
 export { VideoForgeConfigSchema } from './core/config/schema.js';
 export type { VideoForgeConfig, Theme, Scene } from './core/config/schema.js';
 

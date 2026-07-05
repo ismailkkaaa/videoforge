@@ -13,7 +13,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "build": "tsc",
+    "build": "tsc && node scripts/generate-schema.js",
     "prepare": "husky",
     "render:example": "npm run build && node scripts/render-example.js"
   },

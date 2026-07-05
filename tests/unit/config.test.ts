@@ -129,4 +129,142 @@ scenes:
     expect(() => loadConfig(filePath)).toThrow(ConfigValidationError);
     expect(() => loadConfig(filePath)).toThrow('Unknown template "non-existent-template"');
   });
+
+  it('should fill in defaults correctly for a minimal config', () => {
+    const filePath = path.join(tmpDir, 'minimal.json');
+    // Minimal config: meta is completely omitted, transitions omitted
+    const minimalJson = {
+      theme: {
+        primaryColor: '#000000',
+        secondaryColor: '#ffffff',
+        fontFamily: 'Arial',
+      },
+      scenes: [
+        {
+          id: 'scene-1',
+          template: 'title-card',
+          duration: 3,
+        },
+      ],
+    };
+    fs.writeFileSync(filePath, JSON.stringify(minimalJson));
+
+    const config = loadConfig(filePath);
+    expect(config.meta).toBeDefined();
+    expect(config.meta.title).toBe('VideoForge Project');
+    expect(config.meta.resolution.width).toBe(1280);
+    expect(config.meta.resolution.height).toBe(720);
+    expect(config.meta.fps).toBe(30);
+    expect(config.meta.outputPath).toBe('./output/video.mp4');
+    expect(config.scenes[0].transition).toEqual({ type: 'cut', duration: 0 });
+  });
+
+  it('should parse identical JSON and YAML contents to identical objects', () => {
+    const jsonPath = path.join(tmpDir, 'parity.json');
+    const yamlPath = path.join(tmpDir, 'parity.yaml');
+
+    const configData = {
+      meta: { title: 'Parity' },
+      theme: { primaryColor: '#1', secondaryColor: '#2', fontFamily: 'F' },
+      scenes: [{ id: 's1', template: 'title-card', duration: 2, data: { a: 1 } }],
+    };
+
+    fs.writeFileSync(jsonPath, JSON.stringify(configData));
+    fs.writeFileSync(
+      yamlPath,
+      `
+meta:
+  title: Parity
+theme:
+  primaryColor: "#1"
+  secondaryColor: "#2"
+  fontFamily: "F"
+scenes:
+  - id: s1
+    template: title-card
+    duration: 2
+    data:
+      a: 1
+`
+    );
+
+    const configJson = loadConfig(jsonPath);
+    const configYaml = loadConfig(yamlPath);
+
+    expect(configJson).toEqual(configYaml);
+  });
+
+  it('should contain offending field paths in error messages for multiple cases', () => {
+    // Helper to assert field path in error
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const assertErrorPath = (configData: any, expectedPath: string) => {
+      const filePath = path.join(tmpDir, 'error-temp.json');
+      fs.writeFileSync(filePath, JSON.stringify(configData));
+      try {
+        loadConfig(filePath);
+        expect.fail('Should have thrown an error');
+      } catch (err) {
+        const error = err as Error;
+        expect(error.message).toContain(expectedPath);
+      }
+    };
+
+    const baseConfig = {
+      meta: { title: 'Base' },
+      theme: { primaryColor: '#0', secondaryColor: '#1', fontFamily: 'A' },
+      scenes: [{ id: 's1', template: 'title-card', duration: 3 }],
+    };
+
+    // Case 1: scenes[0].duration (negative number)
+    assertErrorPath(
+      {
+        ...baseConfig,
+        scenes: [{ id: 's1', template: 'title-card', duration: -1 }],
+      },
+      'scenes[0].duration'
+    );
+
+    // Case 2: meta.resolution.width (wrong type)
+    assertErrorPath(
+      {
+        ...baseConfig,
+        meta: { title: 'Base', resolution: { width: 'invalid-type' } },
+      },
+      'meta.resolution.width'
+    );
+
+    // Case 3: theme.primaryColor (missing/empty)
+    assertErrorPath(
+      {
+        ...baseConfig,
+        theme: { primaryColor: '', secondaryColor: '#1', fontFamily: 'A' },
+      },
+      'theme.primaryColor'
+    );
+
+    // Case 4: scenes[0].id (missing/empty)
+    assertErrorPath(
+      {
+        ...baseConfig,
+        scenes: [{ id: '', template: 'title-card', duration: 3 }],
+      },
+      'scenes[0].id'
+    );
+
+    // Case 5: scenes[0].transition.duration (negative number)
+    assertErrorPath(
+      {
+        ...baseConfig,
+        scenes: [
+          {
+            id: 's1',
+            template: 'title-card',
+            duration: 3,
+            transition: { type: 'fade', duration: -2 },
+          },
+        ],
+      },
+      'scenes[0].transition.duration'
+    );
+  });
 });

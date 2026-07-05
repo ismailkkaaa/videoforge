@@ -6,7 +6,7 @@ export const ResolutionSchema = z.object({
 });
 
 export const MetaSchema = z.object({
-  title: z.string().min(1, 'Title must not be empty'),
+  title: z.string().min(1, 'Title must not be empty').default('VideoForge Project'),
   resolution: ResolutionSchema.default({ width: 1280, height: 720 }),
   fps: z.number().int().positive().default(30),
   outputPath: z.string().default('./output/video.mp4'),
@@ -20,8 +20,8 @@ export const ThemeSchema = z.object({
 });
 
 export const TransitionSchema = z.object({
-  type: z.enum(['cut', 'fade']),
-  duration: z.number().nonnegative('Transition duration must be non-negative'),
+  type: z.enum(['cut', 'fade']).default('cut'),
+  duration: z.number().nonnegative('Transition duration must be non-negative').default(0),
 });
 
 export const SceneSchema = z.object({
@@ -29,11 +29,11 @@ export const SceneSchema = z.object({
   template: z.string().min(1, 'Scene template must not be empty'),
   duration: z.number().positive('Scene duration must be a positive number'),
   data: z.record(z.any()).default({}),
-  transition: TransitionSchema.optional(),
+  transition: TransitionSchema.default({ type: 'cut', duration: 0 }),
 });
 
 export const VideoForgeConfigSchema = z.object({
-  meta: MetaSchema,
+  meta: MetaSchema.default({ title: 'VideoForge Project' }),
   theme: ThemeSchema,
   scenes: z.array(SceneSchema).min(1, 'At least one scene is required'),
 });

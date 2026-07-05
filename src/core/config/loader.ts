@@ -1,9 +1,54 @@
 import fs from 'fs';
 import path from 'path';
 import yaml from 'yaml';
+import { z } from 'zod';
 import { VideoForgeConfigSchema, type VideoForgeConfig } from './schema.js';
 import { ConfigValidationError } from '../errors.js';
 import { templateRegistry } from '../templates/registry.js';
+
+/**
+ * Format path array to a string representation (e.g. scenes[1].duration)
+ */
+function formatPath(pathArray: (string | number)[]): string {
+  return pathArray.reduce<string>((acc, segment) => {
+    if (typeof segment === 'number') {
+      return `${acc}[${segment}]`;
+    }
+    return acc ? `${acc}.${segment}` : String(segment);
+  }, '');
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getValueAtPath(obj: any, pathArray: (string | number)[]): any {
+  let current = obj;
+  for (const segment of pathArray) {
+    if (current === null || current === undefined) return undefined;
+    current = current[segment];
+  }
+  return current;
+}
+
+/**
+ * Custom formatter for Zod issues to output actionable messages.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function formatZodIssue(issue: z.ZodIssue, parsed: any): string {
+  const pathStr = formatPath(issue.path) || 'root';
+  const rawVal = getValueAtPath(parsed, issue.path);
+  let valStr = '';
+
+  if (rawVal !== undefined) {
+    valStr = typeof rawVal === 'object' ? JSON.stringify(rawVal) : String(rawVal);
+  }
+
+  if (issue.code === 'invalid_type') {
+    const gotStr = valStr ? `, got ${valStr}` : `, got ${issue.received}`;
+    return `${pathStr}: expected ${issue.expected}${gotStr}`;
+  }
+
+  const gotStr = valStr !== '' ? `, got ${valStr}` : '';
+  return `${pathStr}: ${issue.message}${gotStr}`;
+}
 
 /**
  * Loads and validates a VideoForge configuration file from disk.
@@ -39,10 +84,7 @@ export function loadConfig(filePath: string): VideoForgeConfig {
 
   const result = VideoForgeConfigSchema.safeParse(parsed);
   if (!result.success) {
-    const issues = result.error.issues.map((issue) => {
-      const fieldPath = issue.path.join('.') || 'root';
-      return `${fieldPath}: ${issue.message}`;
-    });
+    const issues = result.error.issues.map((issue) => formatZodIssue(issue, parsed));
     throw new ConfigValidationError(`Configuration validation failed:\n- ${issues.join('\n- ')}`);
   }
 
