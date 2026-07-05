@@ -22,4 +22,7 @@ export { analyzeMarkdown } from './ai/analyzers/markdown.js';
 export { analyzeGithubRepo } from './ai/analyzers/github-repo.js';
 export { analyzeUrl } from './ai/analyzers/url.js';
 
+export { createApp } from './api/server.js';
+export { createMcpServer, runMcpServer } from './mcp/server.js';
+
 export const VERSION = '0.1.0';
