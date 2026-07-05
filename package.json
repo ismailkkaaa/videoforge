@@ -4,6 +4,11 @@
   "description": "An open-source, local-first, AI-assisted motion graphics video generator",
   "main": "dist/index.js",
   "type": "module",
+  "files": [
+    "dist",
+    "assets",
+    "videoforge.config.schema.json"
+  ],
   "engines": {
     "node": ">=18"
   },
@@ -13,8 +18,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "build": "tsc && node scripts/generate-schema.js",
+    "build": "tsc && node scripts/generate-schema.js && npm run build --prefix ui && node scripts/copy-ui.js",
     "prepare": "husky",
+    "postinstall": "npm install --prefix ui",
     "render:example": "npm run build && node scripts/render-example.js"
   },
   "keywords": [

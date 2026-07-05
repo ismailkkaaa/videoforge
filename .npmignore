@@ -1,0 +1,1 @@
+# Empty .npmignore to prevent npm pack from respecting subfolder .gitignore files

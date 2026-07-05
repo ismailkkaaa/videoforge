@@ -1,0 +1,96 @@
+{
+  "$schema": "../../videoforge.config.schema.json",
+  "meta": {
+    "title": "VideoForge Promo Video",
+    "outputPath": "./output/videoforge-promo.mp4",
+    "fps": 30,
+    "resolution": {
+      "width": 1280,
+      "height": 720
+    }
+  },
+  "theme": {
+    "primaryColor": "#0b0b0f",
+    "secondaryColor": "#e94560",
+    "fontFamily": "sans-serif"
+  },
+  "scenes": [
+    {
+      "id": "intro",
+      "template": "title-card",
+      "duration": 3.0,
+      "data": {
+        "title": "VideoForge",
+        "subtitle": "AI-Assisted Local Motion Graphics Generator"
+      },
+      "transition": {
+        "type": "fade",
+        "duration": 1.0
+      }
+    },
+    {
+      "id": "features",
+      "template": "feature-grid",
+      "duration": 4.5,
+      "data": {
+        "title": "Local-First Processing",
+        "features": [
+          {
+            "title": "Playwright Capture",
+            "description": "Headless Chromium screenshot frames capture."
+          },
+          {
+            "title": "Canvas Blending",
+            "description": "Browser-based transition frame processor."
+          },
+          {
+            "title": "FFmpeg Encoder",
+            "description": "Zero SaaS fees. High quality MP4 outputs."
+          }
+        ]
+      },
+      "transition": {
+        "type": "fade",
+        "duration": 1.0
+      }
+    },
+    {
+      "id": "sdk",
+      "template": "code-snippet",
+      "duration": 4.0,
+      "data": {
+        "title": "Import and Render in Node",
+        "code": "import { renderProject } from 'videoforge';\n\nawait renderProject(config);",
+        "language": "typescript"
+      },
+      "transition": {
+        "type": "fade",
+        "duration": 1.0
+      }
+    },
+    {
+      "id": "stats",
+      "template": "stat-counter",
+      "duration": 3.5,
+      "data": {
+        "number": 100,
+        "suffix": "%",
+        "title": "Open Source",
+        "subtitle": "Highly configurable and extensible"
+      },
+      "transition": {
+        "type": "fade",
+        "duration": 1.0
+      }
+    },
+    {
+      "id": "outro",
+      "template": "outro",
+      "duration": 3.0,
+      "data": {
+        "tagline": "Get Started on GitHub!",
+        "link": "github.com/videoforge/videoforge"
+      }
+    }
+  ]
+}

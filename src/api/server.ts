@@ -25,7 +25,10 @@ export function createApp(): express.Application {
   app.use('/output', express.static(path.resolve(process.cwd(), 'output')));
 
   // Serve built static UI storyboard editor
-  const uiDistPath = path.resolve(process.cwd(), 'ui', 'dist');
+  let uiDistPath = path.resolve(process.cwd(), 'dist', 'ui');
+  if (!fs.existsSync(uiDistPath)) {
+    uiDistPath = path.resolve(process.cwd(), 'ui', 'dist');
+  }
   if (fs.existsSync(uiDistPath)) {
     app.use(express.static(uiDistPath));
   }
