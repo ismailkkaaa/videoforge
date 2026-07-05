@@ -1,0 +1,10 @@
+node_modules/
+dist/
+output/
+tmp/
+.env
+.env*.local
+coverage/
+playwright-report/
+*.mp4
+.DS_Store
