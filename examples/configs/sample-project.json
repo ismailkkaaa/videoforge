@@ -1,0 +1,25 @@
+{
+  "meta": {
+    "title": "VideoForge Sample Project",
+    "resolution": { "width": 1280, "height": 720 },
+    "fps": 30,
+    "outputPath": "./output/sample-video.mp4"
+  },
+  "theme": {
+    "primaryColor": "#1a1a2e",
+    "secondaryColor": "#e94560",
+    "fontFamily": "sans-serif"
+  },
+  "scenes": [
+    {
+      "id": "scene-1",
+      "template": "title-card",
+      "duration": 3,
+      "data": {
+        "title": "Hello VideoForge",
+        "subtitle": "Local-First Video Generator",
+        "duration": 3
+      }
+    }
+  ]
+}

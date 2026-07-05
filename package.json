@@ -14,7 +14,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "build": "tsc",
-    "prepare": "husky"
+    "prepare": "husky",
+    "render:example": "npm run build && node scripts/render-example.js"
   },
   "keywords": [
     "video",
