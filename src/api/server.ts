@@ -1,4 +1,6 @@
 import express from 'express';
+import fs from 'fs';
+import path from 'path';
 import { renderProject } from '../core/render/pipeline.js';
 import { AnthropicProvider } from '../ai/providers/anthropic.js';
 import { analyzeMarkdown, type AnalyzerResult } from '../ai/analyzers/markdown.js';
@@ -18,6 +20,15 @@ const jobs = new Map<string, Job>();
 export function createApp(): express.Application {
   const app = express();
   app.use(express.json());
+
+  // Serve static video outputs
+  app.use('/output', express.static(path.resolve(process.cwd(), 'output')));
+
+  // Serve built static UI storyboard editor
+  const uiDistPath = path.resolve(process.cwd(), 'ui', 'dist');
+  if (fs.existsSync(uiDistPath)) {
+    app.use(express.static(uiDistPath));
+  }
 
   app.post('/render', (req, res) => {
     const parseResult = VideoForgeConfigSchema.safeParse(req.body);

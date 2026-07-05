@@ -195,4 +195,35 @@ program
     }
   });
 
+program
+  .command('studio')
+  .description('Start the VideoForge Studio local storyboard editor')
+  .option('-p, --port <number>', 'Port to run the studio server on', '3000')
+  .action(async (options) => {
+    try {
+      const port = parseInt(options.port, 10);
+      const { createApp } = await import('../api/server.js');
+      const app = createApp();
+
+      app.listen(port, '127.0.0.1', async () => {
+        const url = `http://127.0.0.1:${port}`;
+        console.log(`VideoForge Studio running at ${url}`);
+        console.log('Opening studio in your browser...');
+
+        const { exec } = await import('child_process');
+        const start =
+          process.platform === 'darwin'
+            ? 'open'
+            : process.platform === 'win32'
+              ? 'start'
+              : 'xdg-open';
+        exec(`${start} ${url}`);
+      });
+    } catch (err) {
+      const error = err as Error;
+      console.error(`Failed to start studio: ${error.message}`);
+      process.exit(1);
+    }
+  });
+
 program.parse(process.argv);

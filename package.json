@@ -53,6 +53,8 @@
     "jsdom": "^29.1.1",
     "lint-staged": "^15.2.7",
     "prettier": "^3.3.2",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
     "supertest": "^7.0.0",
     "typescript": "^5.5.2",
     "typescript-eslint": "^8.0.0",
