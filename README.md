@@ -10,31 +10,6 @@ Everything runs entirely on your local machine—no cloud rendering fees, no Saa
 
 ---
 
-## 🚀 Quickstart
-
-Get a fully customized, rendered promo video in under 10 minutes:
-
-```bash
-# 1. Initialize a new project directory
-npx videoforge init my-promo
-
-# 2. Open VideoForge Studio (interactive web editor)
-cd my-promo
-npx videoforge studio
-```
-
-Or generate and render directly using AI:
-
-```bash
-# Set your Anthropic API Key
-export ANTHROPIC_API_KEY="your-api-key"
-
-# Generate a video from a Markdown file
-npx videoforge generate markdown README.md --output ./my-video.mp4
-```
-
----
-
 ## ✨ Features
 
 - **Built-in Starter Template Library**: Includes 7 gorgeous, responsive HTML5/CSS/GSAP scene templates:
@@ -52,8 +27,80 @@ npx videoforge generate markdown README.md --output ./my-video.mp4
 
 ---
 
-## 🛠 Contributing & Dev Setup
+## 🚀 Quick Start
 
-We welcome outside contributors! Check out [CONTRIBUTING.md](CONTRIBUTING.md) to set up the workspace and get started. 
+Get a fully customized, rendered promo video in under 10 minutes:
 
-If you are looking for somewhere to start, look for issues labeled **good first issue**.
+### 1. Installation
+Ensure you have **Node.js >= 18** and **FFmpeg** installed on your system.
+
+```bash
+# Clone the repository
+git clone https://github.com/your-username/videoforge.git
+cd videoforge
+
+# Install dependencies and build
+npm install
+npm run build
+```
+
+### 2. Launch VideoForge Studio (Interactive Web Editor UI)
+Starts the local Express server and launches the storyboard editor in your browser:
+```bash
+node dist/cli/index.js studio
+```
+Open `http://127.0.0.1:3000` to preview scenes in real time and edit template parameters.
+
+### 3. Generate & Render via CLI
+If you want to use AI to generate a storyboard and render it directly:
+```bash
+# Set your Anthropic API Key
+export ANTHROPIC_API_KEY="your-api-key"
+
+# Generate a video from a Markdown file
+node dist/cli/index.js generate markdown README.md --output ./my-video.mp4
+```
+
+---
+
+## 📂 Project Structure
+
+```
+videoforge/
+├── src/
+│   ├── ai/               # Anthropic LLM provider & analyzers (MD, GitHub, URL)
+│   ├── api/              # Local Express REST API server
+│   ├── cli/              # Commander CLI scripts
+│   ├── core/
+│   │   ├── config/       # Schema loaders and Zod validation
+│   │   ├── render/       # Playwright browser controller & FFmpeg encoder
+│   │   └── templates/    # Templates registry and interfaces
+│   ├── mcp/              # stdio Model Context Protocol server
+│   └── templates-builtin/# Built-in HTML/CSS/GSAP scene templates
+├── ui/                   # Vite + React storyboard editor frontend
+├── dist/                 # Compiled JavaScript distribution and assets
+└── tests/                # Comprehensive Vitest unit and integration suites
+```
+
+---
+
+## 🗺 Roadmap
+
+- [ ] **Custom Template Plugins**: Allow loading custom scene templates from remote URLs or external directories.
+- [ ] **Audio/Voiceover Overlay**: Integrate local text-to-speech engine or custom background audio tracks.
+- [ ] **Interactive Timeline**: Fine-grained keyframe animations control inside the Studio editor.
+- [ ] **Lottie Animation Support**: Support embedding Lottie files inside templates.
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please check out [CONTRIBUTING.md](CONTRIBUTING.md) to set up your local development workspace.
+
+If you find a bug or have a suggestion, feel free to open a GitHub Issue or submit a Pull Request.
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
