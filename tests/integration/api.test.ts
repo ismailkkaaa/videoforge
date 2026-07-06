@@ -12,8 +12,8 @@ vi.mock('../../src/core/render/pipeline.js', () => ({
   }),
 }));
 
-// Mock Anthropic SDK globally to prevent real API calls and handle multiple sequential responses
-const mockAnthropicResponses = [
+// Mock Google Gen AI SDK globally to prevent real API calls and handle multiple sequential responses
+const mockGeminiResponses = [
   // First call (facts extraction)
   JSON.stringify({
     title: 'API Project',
@@ -31,22 +31,17 @@ const mockAnthropicResponses = [
   ]),
 ];
 
-let anthropicCallCount = 0;
+let geminiCallCount = 0;
 
-vi.mock('@anthropic-ai/sdk', () => {
+vi.mock('@google/genai', () => {
   return {
-    default: class {
-      messages = {
-        create: vi.fn().mockImplementation(() => {
-          const resp = mockAnthropicResponses[anthropicCallCount] || '[]';
-          anthropicCallCount = (anthropicCallCount + 1) % mockAnthropicResponses.length;
+    GoogleGenAI: class {
+      models = {
+        generateContent: vi.fn().mockImplementation(() => {
+          const resp = mockGeminiResponses[geminiCallCount] || '[]';
+          geminiCallCount = (geminiCallCount + 1) % mockGeminiResponses.length;
           return Promise.resolve({
-            content: [
-              {
-                type: 'text',
-                text: resp,
-              },
-            ],
+            text: resp,
           });
         }),
       };
@@ -58,7 +53,7 @@ describe('REST API Integration Tests', () => {
   let app: Application;
 
   beforeAll(() => {
-    process.env.ANTHROPIC_API_KEY = 'mock-test-key';
+    process.env.GEMINI_API_KEY = 'mock-test-key';
     app = createApp();
   });
 

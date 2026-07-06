@@ -4,7 +4,7 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprot
 import { initProject } from '../core/config/scaffold.js';
 import { loadConfig } from '../core/config/loader.js';
 import { renderProject } from '../core/render/pipeline.js';
-import { AnthropicProvider } from '../ai/providers/anthropic.js';
+import { GeminiProvider } from '../ai/providers/gemini.js';
 import { analyzeMarkdown, type AnalyzerResult } from '../ai/analyzers/markdown.js';
 import { analyzeGithubRepo } from '../ai/analyzers/github-repo.js';
 import { analyzeUrl } from '../ai/analyzers/url.js';
@@ -109,7 +109,7 @@ export function createMcpServer(): Server {
         const analyzeArgs = args as { type: string; source: string } | undefined;
         const type = String(analyzeArgs?.type);
         const source = String(analyzeArgs?.source);
-        const provider = new AnthropicProvider();
+        const provider = new GeminiProvider();
         let result: AnalyzerResult;
 
         if (type === 'markdown') {

@@ -2,7 +2,7 @@ import express from 'express';
 import fs from 'fs';
 import path from 'path';
 import { renderProject } from '../core/render/pipeline.js';
-import { AnthropicProvider } from '../ai/providers/anthropic.js';
+import { GeminiProvider } from '../ai/providers/gemini.js';
 import { analyzeMarkdown, type AnalyzerResult } from '../ai/analyzers/markdown.js';
 import { analyzeGithubRepo } from '../ai/analyzers/github-repo.js';
 import { analyzeUrl } from '../ai/analyzers/url.js';
@@ -82,7 +82,7 @@ export function createApp(): express.Application {
     }
 
     try {
-      const provider = new AnthropicProvider();
+      const provider = new GeminiProvider();
       let result: AnalyzerResult;
 
       if (type === 'markdown') {
@@ -113,7 +113,7 @@ export function createApp(): express.Application {
     }
 
     try {
-      const provider = new AnthropicProvider();
+      const provider = new GeminiProvider();
       let result: AnalyzerResult;
 
       if (type === 'markdown') {

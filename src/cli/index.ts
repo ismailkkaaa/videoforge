@@ -5,7 +5,7 @@ import fs from 'fs';
 import { loadConfig } from '../core/config/loader.js';
 import { initProject } from '../core/config/scaffold.js';
 import { renderProject } from '../core/render/pipeline.js';
-import { AnthropicProvider } from '../ai/providers/anthropic.js';
+import { GeminiProvider } from '../ai/providers/gemini.js';
 import { analyzeMarkdown, type AnalyzerResult } from '../ai/analyzers/markdown.js';
 import { analyzeGithubRepo } from '../ai/analyzers/github-repo.js';
 import { analyzeUrl } from '../ai/analyzers/url.js';
@@ -80,7 +80,7 @@ program
   .argument('<source>', 'Source file path, URL or repo path')
   .action(async (type, source) => {
     try {
-      const provider = new AnthropicProvider();
+      const provider = new GeminiProvider();
       let scenesList: AnalyzerResult;
 
       console.log(`Analyzing ${type} source: ${source}...`);
@@ -120,7 +120,7 @@ program
   .option('--height <number>', 'Override the output resolution height')
   .action(async (type, source, options) => {
     try {
-      const provider = new AnthropicProvider();
+      const provider = new GeminiProvider();
       let scenesList: AnalyzerResult;
 
       console.log(`Analyzing ${type} source to generate storyboard...`);

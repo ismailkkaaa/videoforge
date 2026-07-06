@@ -15,7 +15,7 @@ export type { VideoForgeTemplate } from './core/templates/types.js';
 
 export { VideoForgeError, ConfigValidationError, RenderError } from './core/errors.js';
 
-export { AnthropicProvider } from './ai/providers/anthropic.js';
+export { GeminiProvider } from './ai/providers/gemini.js';
 export type { LLMProvider } from './ai/providers/types.js';
 export { generateStoryboard } from './ai/storyboard-generator.js';
 export { analyzeMarkdown } from './ai/analyzers/markdown.js';

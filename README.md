@@ -54,8 +54,9 @@ Open `http://127.0.0.1:3000` to preview scenes in real time and edit template pa
 ### 3. Generate & Render via CLI
 If you want to use AI to generate a storyboard and render it directly:
 ```bash
-# Set your Anthropic API Key
-export ANTHROPIC_API_KEY="your-api-key"
+# Set your Gemini API Key and Model configuration
+export GEMINI_API_KEY="your-api-key"
+export GEMINI_MODEL="gemini-2.5-flash"
 
 # Generate a video from a Markdown file
 node dist/cli/index.js generate markdown README.md --output ./my-video.mp4
@@ -68,7 +69,7 @@ node dist/cli/index.js generate markdown README.md --output ./my-video.mp4
 ```
 videoforge/
 ├── src/
-│   ├── ai/               # Anthropic LLM provider & analyzers (MD, GitHub, URL)
+│   ├── ai/               # Google Gemini LLM provider & analyzers (MD, GitHub, URL)
 │   ├── api/              # Local Express REST API server
 │   ├── cli/              # Commander CLI scripts
 │   ├── core/
