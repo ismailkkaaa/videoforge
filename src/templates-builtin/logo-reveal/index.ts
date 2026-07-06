@@ -1,10 +1,18 @@
 import type { VideoForgeTemplate, Theme } from '../../core/templates/types.js';
+import {
+  applyAnimatedGradient,
+  ParticleBackground,
+  applyCameraMovement,
+  presets,
+} from '../../core/render/animations.js';
 
 export class LogoRevealTemplate implements VideoForgeTemplate {
   private container!: HTMLElement;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private timeline: any = null;
   private duration: number = 4;
+  private wrapper!: HTMLElement;
+  private particleBg: ParticleBackground | null = null;
 
   mount(container: HTMLElement, data: Record<string, unknown>, theme: Theme): void {
     this.container = container;
@@ -12,106 +20,105 @@ export class LogoRevealTemplate implements VideoForgeTemplate {
 
     this.container.innerHTML = '';
 
-    const wrapper = document.createElement('div');
-    wrapper.style.width = '100%';
-    wrapper.style.height = '100%';
-    wrapper.style.backgroundColor = theme.primaryColor;
-    wrapper.style.display = 'flex';
-    wrapper.style.flexDirection = 'column';
-    wrapper.style.justifyContent = 'center';
-    wrapper.style.alignItems = 'center';
-    wrapper.style.color = theme.secondaryColor;
-    wrapper.style.fontFamily = theme.fontFamily;
-    wrapper.style.boxSizing = 'border-box';
+    this.wrapper = document.createElement('div');
+    this.wrapper.style.width = '100%';
+    this.wrapper.style.height = '100%';
+    this.wrapper.style.display = 'flex';
+    this.wrapper.style.flexDirection = 'column';
+    this.wrapper.style.justifyContent = 'center';
+    this.wrapper.style.alignItems = 'center';
+    this.wrapper.style.color = '#ffffff';
+    this.wrapper.style.fontFamily = theme.fontFamily;
+    this.wrapper.style.boxSizing = 'border-box';
+    this.wrapper.style.position = 'relative';
+    this.wrapper.style.overflow = 'hidden';
+
+    // Particle canvas background
+    const canvas = document.createElement('canvas');
+    canvas.width = 1280;
+    canvas.height = 720;
+    canvas.style.position = 'absolute';
+    canvas.style.top = '0';
+    canvas.style.left = '0';
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
+    canvas.style.pointerEvents = 'none';
+    this.wrapper.appendChild(canvas);
+
+    this.particleBg = new ParticleBackground(canvas, 40);
 
     const logoContainer = document.createElement('div');
     logoContainer.style.display = 'flex';
     logoContainer.style.flexDirection = 'column';
     logoContainer.style.alignItems = 'center';
+    logoContainer.style.position = 'relative';
+    logoContainer.style.zIndex = '10';
+
+    let logoTarget: HTMLElement;
 
     if (theme.logoPath) {
       const img = document.createElement('img');
       img.src = '/logo';
-      img.style.maxHeight = '150px';
-      img.style.maxWidth = '300px';
+      img.style.maxHeight = '160px';
+      img.style.maxWidth = '320px';
       img.style.objectFit = 'contain';
       img.style.opacity = '0';
-      img.style.transform = 'scale(0.5) rotate(-10deg)';
       logoContainer.appendChild(img);
+      logoTarget = img;
     } else {
       const textLogo = document.createElement('div');
       textLogo.textContent = 'LOGO';
-      textLogo.style.fontSize = '40px';
-      textLogo.style.fontWeight = 'bold';
-      textLogo.style.padding = '20px 40px';
+      textLogo.style.fontSize = '44px';
+      textLogo.style.fontWeight = '900';
+      textLogo.style.padding = '20px 45px';
       textLogo.style.border = `4px solid ${theme.secondaryColor}`;
+      textLogo.style.borderRadius = '8px';
       textLogo.style.opacity = '0';
-      textLogo.style.transform = 'scale(0.5)';
       logoContainer.appendChild(textLogo);
+      logoTarget = textLogo;
     }
 
     const titleEl = document.createElement('h2');
     titleEl.textContent = typeof data.title === 'string' ? data.title : 'VideoForge';
-    titleEl.style.fontSize = '36px';
-    titleEl.style.margin = '20px 0 10px 0';
-    titleEl.style.fontWeight = 'bold';
+    titleEl.style.fontSize = '42px';
+    titleEl.style.margin = '25px 0 10px 0';
+    titleEl.style.fontWeight = '800';
+    titleEl.style.letterSpacing = '-1px';
     titleEl.style.opacity = '0';
-    titleEl.style.transform = 'translateY(20px)';
     logoContainer.appendChild(titleEl);
 
+    let subtitleEl: HTMLParagraphElement | null = null;
     if (data.subtitle) {
-      const subtitleEl = document.createElement('p');
+      subtitleEl = document.createElement('p');
       subtitleEl.textContent = String(data.subtitle);
-      subtitleEl.style.fontSize = '20px';
+      subtitleEl.style.fontSize = '22px';
       subtitleEl.style.margin = '0';
       subtitleEl.style.opacity = '0';
-      subtitleEl.style.transform = 'translateY(20px)';
       logoContainer.appendChild(subtitleEl);
     }
 
-    wrapper.appendChild(logoContainer);
-    this.container.appendChild(wrapper);
+    this.wrapper.appendChild(logoContainer);
+    this.container.appendChild(this.wrapper);
 
     // GSAP animation
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const gsap = (window as any).gsap;
     if (gsap) {
       this.timeline = gsap.timeline({ paused: true });
-      const targetLogo = logoContainer.firstChild as HTMLElement;
 
-      this.timeline.to(targetLogo, {
-        opacity: 1,
-        scale: 1,
-        rotation: 0,
-        duration: 1.0,
-        ease: 'back.out(1.7)',
-      });
+      // Premium pop in spring for logo
+      presets.popIn(logoTarget, this.timeline, 1.2, 0);
 
-      this.timeline.to(
-        titleEl,
-        {
-          opacity: 1,
-          y: 0,
-          duration: 0.6,
-          ease: 'power2.out',
-        },
-        '-=0.4'
-      );
-
-      if (logoContainer.children[2]) {
-        this.timeline.to(
-          logoContainer.children[2],
-          {
-            opacity: 0.8,
-            y: 0,
-            duration: 0.6,
-            ease: 'power2.out',
-          },
-          '-=0.4'
-        );
+      // Slide up text elements
+      presets.slideUp(titleEl, this.timeline, 1.0, 0.4, 25);
+      if (subtitleEl) {
+        presets.slideUp(subtitleEl, this.timeline, 1.0, 0.6, 25);
       }
 
-      this.timeline.to({}, { duration: Math.max(0, this.duration - this.timeline.duration()) });
+      this.timeline.to(
+        {},
+        { duration: Math.max(0, this.duration - (this.timeline.duration() || 2.5)) }
+      );
     }
   }
 
@@ -120,6 +127,14 @@ export class LogoRevealTemplate implements VideoForgeTemplate {
   }
 
   seek(timeSeconds: number): void {
+    applyAnimatedGradient(this.wrapper, timeSeconds);
+
+    if (this.particleBg) {
+      this.particleBg.render(timeSeconds);
+    }
+
+    applyCameraMovement(this.wrapper, timeSeconds, this.duration, 'zoom');
+
     if (this.timeline) {
       this.timeline.seek(timeSeconds);
     }

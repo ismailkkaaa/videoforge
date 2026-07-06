@@ -108,7 +108,7 @@ describe('Built-in Templates Unit Tests', () => {
       } else if (data.title) {
         expectedText = data.title;
       }
-      expect(container.textContent).toContain(expectedText);
+      expect(container.textContent?.replace(/\u00A0/g, ' ')).toContain(expectedText);
 
       // Test destroy doesn't throw
       if (instance.destroy) {

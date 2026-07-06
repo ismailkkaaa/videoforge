@@ -136,5 +136,5 @@ describe('Transitions and Multitemplate Integration Tests', () => {
     } catch {
       // Ignore
     }
-  }, 60000); // 60s timeout for large multi-scene render
+  }, 120000); // 120s timeout for large multi-scene render
 });

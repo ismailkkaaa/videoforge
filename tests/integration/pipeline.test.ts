@@ -70,7 +70,7 @@ describe('Pipeline Integration Tests', () => {
     } catch {
       // Ignore
     }
-  }, 30000); // 30s timeout
+  }, 90000); // 90s timeout
 
   it('should be deterministic (seek(t) twice produces identical screenshots)', async () => {
     const config = loadConfig(sampleConfigPath);

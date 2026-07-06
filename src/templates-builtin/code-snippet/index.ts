@@ -1,10 +1,19 @@
 import type { VideoForgeTemplate, Theme } from '../../core/templates/types.js';
+import {
+  applyAnimatedGradient,
+  ParticleBackground,
+  applyCameraMovement,
+  applyGlassmorphism,
+  presets,
+} from '../../core/render/animations.js';
 
 export class CodeSnippetTemplate implements VideoForgeTemplate {
   private container!: HTMLElement;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private timeline: any = null;
   private duration: number = 6;
+  private wrapper!: HTMLElement;
+  private particleBg: ParticleBackground | null = null;
 
   mount(container: HTMLElement, data: Record<string, unknown>, theme: Theme): void {
     this.container = container;
@@ -12,18 +21,33 @@ export class CodeSnippetTemplate implements VideoForgeTemplate {
 
     this.container.innerHTML = '';
 
-    const wrapper = document.createElement('div');
-    wrapper.style.width = '100%';
-    wrapper.style.height = '100%';
-    wrapper.style.backgroundColor = theme.primaryColor;
-    wrapper.style.display = 'flex';
-    wrapper.style.flexDirection = 'column';
-    wrapper.style.justifyContent = 'center';
-    wrapper.style.alignItems = 'center';
-    wrapper.style.color = theme.secondaryColor;
-    wrapper.style.fontFamily = theme.fontFamily;
-    wrapper.style.boxSizing = 'border-box';
-    wrapper.style.padding = '50px';
+    this.wrapper = document.createElement('div');
+    this.wrapper.style.width = '100%';
+    this.wrapper.style.height = '100%';
+    this.wrapper.style.display = 'flex';
+    this.wrapper.style.flexDirection = 'column';
+    this.wrapper.style.justifyContent = 'center';
+    this.wrapper.style.alignItems = 'center';
+    this.wrapper.style.color = '#ffffff';
+    this.wrapper.style.fontFamily = theme.fontFamily;
+    this.wrapper.style.boxSizing = 'border-box';
+    this.wrapper.style.padding = '50px';
+    this.wrapper.style.position = 'relative';
+    this.wrapper.style.overflow = 'hidden';
+
+    // Particle canvas background
+    const canvas = document.createElement('canvas');
+    canvas.width = 1280;
+    canvas.height = 720;
+    canvas.style.position = 'absolute';
+    canvas.style.top = '0';
+    canvas.style.left = '0';
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
+    canvas.style.pointerEvents = 'none';
+    this.wrapper.appendChild(canvas);
+
+    this.particleBg = new ParticleBackground(canvas, 30);
 
     const header = document.createElement('div');
     header.style.width = '100%';
@@ -32,15 +56,17 @@ export class CodeSnippetTemplate implements VideoForgeTemplate {
     header.style.justifyContent = 'space-between';
     header.style.alignItems = 'center';
     header.style.marginBottom = '15px';
-    header.style.opacity = '0';
-    header.style.transform = 'translateY(-10px)';
+    header.style.position = 'relative';
+    header.style.zIndex = '10';
 
     if (data.title) {
       const titleEl = document.createElement('h3');
       titleEl.textContent = String(data.title);
-      titleEl.style.fontSize = '28px';
+      titleEl.style.fontSize = '32px';
       titleEl.style.margin = '0';
-      titleEl.style.fontWeight = 'bold';
+      titleEl.style.fontWeight = '800';
+      titleEl.style.letterSpacing = '-0.8px';
+      titleEl.style.color = '#ffffff';
       header.appendChild(titleEl);
     }
 
@@ -50,34 +76,57 @@ export class CodeSnippetTemplate implements VideoForgeTemplate {
     langBadge.style.padding = '4px 10px';
     langBadge.style.borderRadius = '20px';
     langBadge.style.backgroundColor = theme.secondaryColor;
-    langBadge.style.color = theme.primaryColor;
-    langBadge.style.fontWeight = 'bold';
+    langBadge.style.color = '#000000';
+    langBadge.style.fontWeight = '800';
     header.appendChild(langBadge);
 
-    wrapper.appendChild(header);
+    this.wrapper.appendChild(header);
+
+    // Create the macOS-style code IDE window
+    const windowFrame = document.createElement('div');
+    windowFrame.style.width = '100%';
+    windowFrame.style.maxWidth = '900px';
+    windowFrame.style.position = 'relative';
+    windowFrame.style.zIndex = '10';
+    applyGlassmorphism(windowFrame, 'rgba(15, 15, 27, 0.4)', '1px solid rgba(255, 255, 255, 0.12)');
+
+    // Mac dots titlebar
+    const titleBar = document.createElement('div');
+    titleBar.style.display = 'flex';
+    titleBar.style.alignItems = 'center';
+    titleBar.style.padding = '14px 20px 8px 20px';
+    titleBar.style.gap = '8px';
+
+    const dots = ['#ff5f56', '#ffbd2e', '#27c93f'];
+    dots.forEach((color) => {
+      const dot = document.createElement('div');
+      dot.style.width = '12px';
+      dot.style.height = '12px';
+      dot.style.borderRadius = '50%';
+      dot.style.backgroundColor = color;
+      titleBar.appendChild(dot);
+    });
+    windowFrame.appendChild(titleBar);
 
     const preEl = document.createElement('pre');
     preEl.style.width = '100%';
-    preEl.style.maxWidth = '900px';
-    preEl.style.borderRadius = '12px';
-    preEl.style.padding = '24px';
     preEl.style.margin = '0';
+    preEl.style.padding = '10px 24px 24px 24px';
     preEl.style.fontSize = '18px';
+    preEl.style.lineHeight = '1.6';
     preEl.style.overflow = 'hidden';
-    preEl.style.backgroundColor = '#1e1e1e';
-    preEl.style.border = '1px solid rgba(255, 255, 255, 0.1)';
-    preEl.style.boxShadow = '0 10px 35px rgba(0, 0, 0, 0.4)';
-    preEl.style.opacity = '0';
-    preEl.style.transform = 'translateY(20px)';
+    preEl.style.backgroundColor = 'transparent';
+    preEl.style.fontFamily = 'monospace';
 
     const codeEl = document.createElement('code');
     const lang = typeof data.language === 'string' ? data.language : 'javascript';
     codeEl.className = `language-${lang}`;
     codeEl.textContent = typeof data.code === 'string' ? data.code : '';
     preEl.appendChild(codeEl);
-    wrapper.appendChild(preEl);
+    windowFrame.appendChild(preEl);
+    this.wrapper.appendChild(windowFrame);
 
-    this.container.appendChild(wrapper);
+    this.container.appendChild(this.wrapper);
 
     // Apply Prism highlighting
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -91,23 +140,8 @@ export class CodeSnippetTemplate implements VideoForgeTemplate {
     const gsap = (window as any).gsap;
     if (gsap) {
       this.timeline = gsap.timeline({ paused: true });
-      this.timeline.to(header, {
-        opacity: 1,
-        y: 0,
-        duration: 0.5,
-        ease: 'power2.out',
-      });
-
-      this.timeline.to(
-        preEl,
-        {
-          opacity: 1,
-          y: 0,
-          duration: 0.7,
-          ease: 'power2.out',
-        },
-        '-=0.3'
-      );
+      presets.slideDown(header, this.timeline, 0.8, 0, 20);
+      presets.scaleUp(windowFrame, this.timeline, 1.0, 0.2);
 
       // Line or token reveal (simple fade in of all generated spans)
       const tokens = codeEl.querySelectorAll('span');
@@ -121,10 +155,13 @@ export class CodeSnippetTemplate implements VideoForgeTemplate {
             stagger: 0.015,
             ease: 'none',
           },
-          '-=0.3'
+          0.6
         );
       }
-      this.timeline.to({}, { duration: Math.max(0, this.duration - this.timeline.duration()) });
+      this.timeline.to(
+        {},
+        { duration: Math.max(0, this.duration - (this.timeline.duration() || 3)) }
+      );
     }
   }
 
@@ -133,6 +170,14 @@ export class CodeSnippetTemplate implements VideoForgeTemplate {
   }
 
   seek(timeSeconds: number): void {
+    applyAnimatedGradient(this.wrapper, timeSeconds);
+
+    if (this.particleBg) {
+      this.particleBg.render(timeSeconds);
+    }
+
+    applyCameraMovement(this.wrapper, timeSeconds, this.duration, 'zoom');
+
     if (this.timeline) {
       this.timeline.seek(timeSeconds);
     }

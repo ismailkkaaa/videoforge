@@ -1,10 +1,19 @@
 import type { VideoForgeTemplate, Theme } from '../../core/templates/types.js';
+import {
+  applyAnimatedGradient,
+  ParticleBackground,
+  applyCameraMovement,
+  splitTextToCharacters,
+  presets,
+} from '../../core/render/animations.js';
 
 export class OutroTemplate implements VideoForgeTemplate {
   private container!: HTMLElement;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private timeline: any = null;
   private duration: number = 4;
+  private wrapper!: HTMLElement;
+  private particleBg: ParticleBackground | null = null;
 
   mount(container: HTMLElement, data: Record<string, unknown>, theme: Theme): void {
     this.container = container;
@@ -12,63 +21,93 @@ export class OutroTemplate implements VideoForgeTemplate {
 
     this.container.innerHTML = '';
 
-    const wrapper = document.createElement('div');
-    wrapper.style.width = '100%';
-    wrapper.style.height = '100%';
-    wrapper.style.backgroundColor = theme.primaryColor;
-    wrapper.style.display = 'flex';
-    wrapper.style.flexDirection = 'column';
-    wrapper.style.justifyContent = 'center';
-    wrapper.style.alignItems = 'center';
-    wrapper.style.color = theme.secondaryColor;
-    wrapper.style.fontFamily = theme.fontFamily;
-    wrapper.style.boxSizing = 'border-box';
-    wrapper.style.padding = '40px';
+    this.wrapper = document.createElement('div');
+    this.wrapper.style.width = '100%';
+    this.wrapper.style.height = '100%';
+    this.wrapper.style.display = 'flex';
+    this.wrapper.style.flexDirection = 'column';
+    this.wrapper.style.justifyContent = 'center';
+    this.wrapper.style.alignItems = 'center';
+    this.wrapper.style.color = '#ffffff';
+    this.wrapper.style.fontFamily = theme.fontFamily;
+    this.wrapper.style.boxSizing = 'border-box';
+    this.wrapper.style.padding = '40px';
+    this.wrapper.style.position = 'relative';
+    this.wrapper.style.overflow = 'hidden';
+
+    // Particle canvas background
+    const canvas = document.createElement('canvas');
+    canvas.width = 1280;
+    canvas.height = 720;
+    canvas.style.position = 'absolute';
+    canvas.style.top = '0';
+    canvas.style.left = '0';
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
+    canvas.style.pointerEvents = 'none';
+    this.wrapper.appendChild(canvas);
+
+    this.particleBg = new ParticleBackground(canvas, 40);
 
     const outroContainer = document.createElement('div');
     outroContainer.style.textAlign = 'center';
+    outroContainer.style.position = 'relative';
+    outroContainer.style.zIndex = '10';
 
+    let logoImg: HTMLImageElement | null = null;
     if (theme.logoPath) {
-      const img = document.createElement('img');
-      img.src = '/logo';
-      img.style.maxHeight = '100px';
-      img.style.maxWidth = '250px';
-      img.style.objectFit = 'contain';
-      img.style.marginBottom = '25px';
-      img.style.opacity = '0';
-      img.style.transform = 'scale(0.8)';
-      outroContainer.appendChild(img);
+      logoImg = document.createElement('img');
+      logoImg.src = '/logo';
+      logoImg.style.maxHeight = '120px';
+      logoImg.style.maxWidth = '280px';
+      logoImg.style.objectFit = 'contain';
+      logoImg.style.marginBottom = '30px';
+      logoImg.style.opacity = '0';
+      outroContainer.appendChild(logoImg);
     }
 
     const taglineEl = document.createElement('h2');
     taglineEl.textContent =
       typeof data.tagline === 'string' ? data.tagline : 'Build Videos with VideoForge';
-    taglineEl.style.fontSize = '36px';
-    taglineEl.style.margin = '0 0 20px 0';
-    taglineEl.style.fontWeight = 'bold';
-    taglineEl.style.opacity = '0';
-    taglineEl.style.transform = 'translateY(15px)';
+    taglineEl.style.fontSize = '48px';
+    taglineEl.style.margin = '0 0 30px 0';
+    taglineEl.style.fontWeight = '900';
+    taglineEl.style.letterSpacing = '-1.5px';
     outroContainer.appendChild(taglineEl);
 
+    let linkWrapper: HTMLDivElement | null = null;
     if (data.link) {
       const linkEl = document.createElement('a');
       linkEl.textContent = String(data.link);
-      linkEl.href = '#'; // Headless Chromium doesn't click
-      linkEl.style.fontSize = '24px';
-      linkEl.style.color = theme.secondaryColor;
+      linkEl.href = '#';
+      linkEl.style.fontSize = '20px';
+      linkEl.style.color = '#ffffff';
       linkEl.style.textDecoration = 'none';
-      linkEl.style.opacity = '0.8';
-      linkEl.style.fontWeight = '500';
+      linkEl.style.fontWeight = '700';
 
-      const linkWrapper = document.createElement('div');
+      linkWrapper = document.createElement('div');
+      linkWrapper.style.display = 'inline-block';
+      linkWrapper.style.padding = '12px 30px';
+      linkWrapper.style.borderRadius = '30px';
+      linkWrapper.style.backgroundColor = theme.secondaryColor;
+      linkWrapper.style.color = '#000000';
+      linkWrapper.style.border = '1px solid rgba(255, 255, 255, 0.2)';
+      linkWrapper.style.boxShadow = '0 10px 30px rgba(0, 0, 0, 0.3)';
       linkWrapper.style.opacity = '0';
-      linkWrapper.style.transform = 'translateY(15px)';
+      linkWrapper.style.transform = 'translateY(25px)';
+
+      // Put link text to black if background is yellow/secondary color
+      linkEl.style.color = '#000000';
+
       linkWrapper.appendChild(linkEl);
       outroContainer.appendChild(linkWrapper);
     }
 
-    wrapper.appendChild(outroContainer);
-    this.container.appendChild(wrapper);
+    this.wrapper.appendChild(outroContainer);
+    this.container.appendChild(this.wrapper);
+
+    // split typography character animation
+    const chars = splitTextToCharacters(taglineEl);
 
     // GSAP animation
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -77,42 +116,29 @@ export class OutroTemplate implements VideoForgeTemplate {
       this.timeline = gsap.timeline({ paused: true });
 
       let offset = 0;
-      if (theme.logoPath) {
-        this.timeline.to(outroContainer.firstChild, {
-          opacity: 1,
-          scale: 1,
-          duration: 0.6,
-          ease: 'back.out(1.5)',
-        });
-        offset = 0.4;
+      if (logoImg) {
+        presets.popIn(logoImg, this.timeline, 1.0, 0);
+        offset = 0.3;
+      }
+
+      // Stagger tagline characters
+      chars.forEach((char, index) => {
+        this.timeline.fromTo(
+          char,
+          { opacity: 0, y: 30, scale: 0.85 },
+          { opacity: 1, y: 0, scale: 1, duration: 0.8, ease: 'back.out(1.6)' },
+          offset + index * 0.035
+        );
+      });
+
+      if (linkWrapper) {
+        presets.slideUp(linkWrapper, this.timeline, 1.0, offset + chars.length * 0.035 + 0.1, 20);
       }
 
       this.timeline.to(
-        taglineEl,
-        {
-          opacity: 1,
-          y: 0,
-          duration: 0.6,
-          ease: 'power2.out',
-        },
-        offset ? `-=${offset}` : undefined
+        {},
+        { duration: Math.max(0, this.duration - (this.timeline.duration() || 3.0)) }
       );
-
-      if (data.link) {
-        const linkElem = outroContainer.children[theme.logoPath ? 2 : 1];
-        this.timeline.to(
-          linkElem,
-          {
-            opacity: 1,
-            y: 0,
-            duration: 0.6,
-            ease: 'power2.out',
-          },
-          '-=0.4'
-        );
-      }
-
-      this.timeline.to({}, { duration: Math.max(0, this.duration - this.timeline.duration()) });
     }
   }
 
@@ -121,6 +147,14 @@ export class OutroTemplate implements VideoForgeTemplate {
   }
 
   seek(timeSeconds: number): void {
+    applyAnimatedGradient(this.wrapper, timeSeconds);
+
+    if (this.particleBg) {
+      this.particleBg.render(timeSeconds);
+    }
+
+    applyCameraMovement(this.wrapper, timeSeconds, this.duration, 'zoom');
+
     if (this.timeline) {
       this.timeline.seek(timeSeconds);
     }

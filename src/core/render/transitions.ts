@@ -12,7 +12,13 @@ export interface RenderSegment {
  * Blends a list of frames in batch inside a headless Chromium page.
  */
 async function blendFrameSequences(
-  framesToBlend: { pathA: string; pathB: string; outputPath: string; alpha: number }[],
+  framesToBlend: {
+    pathA: string;
+    pathB: string;
+    outputPath: string;
+    alpha: number;
+    type: string;
+  }[],
   width: number,
   height: number
 ): Promise<void> {
@@ -24,7 +30,7 @@ async function blendFrameSequences(
     const base64B = fs.readFileSync(item.pathB, 'base64');
 
     const resultBase64 = await page.evaluate(
-      async ({ dataA, dataB, alpha, w, h }) => {
+      async ({ dataA, dataB, alpha, w, h, type }) => {
         const canvas = document.createElement('canvas');
         canvas.width = w;
         canvas.height = h;
@@ -43,11 +49,144 @@ async function blendFrameSequences(
         const imgA = await loadImg(dataA);
         const imgB = await loadImg(dataB);
 
+        // Reset canvas context states
         ctx.globalAlpha = 1.0;
-        ctx.drawImage(imgA, 0, 0, w, h);
+        ctx.filter = 'none';
 
-        ctx.globalAlpha = alpha;
-        ctx.drawImage(imgB, 0, 0, w, h);
+        if (type === 'fade') {
+          ctx.drawImage(imgA, 0, 0, w, h);
+          ctx.globalAlpha = alpha;
+          ctx.drawImage(imgB, 0, 0, w, h);
+        } else if (type === 'blur') {
+          const maxBlur = 30; // max blur size in pixels
+          const blurVal = Math.sin(alpha * Math.PI) * maxBlur;
+          ctx.filter = `blur(${blurVal}px)`;
+          ctx.drawImage(imgA, 0, 0, w, h);
+          ctx.globalAlpha = alpha;
+          ctx.drawImage(imgB, 0, 0, w, h);
+        } else if (type === 'zoom') {
+          // Zoom out/in transition
+          const scaleA = 1.0 + alpha * 0.3;
+          ctx.globalAlpha = 1.0 - alpha;
+          ctx.save();
+          ctx.translate(w / 2, h / 2);
+          ctx.scale(scaleA, scaleA);
+          ctx.drawImage(imgA, -w / 2, -h / 2, w, h);
+          ctx.restore();
+
+          const scaleB = 0.7 + alpha * 0.3;
+          ctx.globalAlpha = alpha;
+          ctx.save();
+          ctx.translate(w / 2, h / 2);
+          ctx.scale(scaleB, scaleB);
+          ctx.drawImage(imgB, -w / 2, -h / 2, w, h);
+          ctx.restore();
+        } else if (type === 'whip') {
+          // Slide left with motion blur
+          const ease = alpha < 0.5 ? 2 * alpha * alpha : 1 - Math.pow(-2 * alpha + 2, 2) / 2;
+          const shift = ease * w;
+          const blurVal = Math.sin(alpha * Math.PI) * 15;
+          ctx.filter = blurVal > 0 ? `blur(${blurVal}px)` : 'none';
+
+          ctx.drawImage(imgA, -shift, 0, w, h);
+          ctx.drawImage(imgB, w - shift, 0, w, h);
+        } else if (type === 'morph' || type === 'liquid') {
+          // Smooth fluid scale-fade-blur morph
+          const ease = alpha < 0.5 ? 2 * alpha * alpha : 1 - Math.pow(-2 * alpha + 2, 2) / 2;
+          const blurVal = Math.sin(alpha * Math.PI) * 25;
+          ctx.filter = `blur(${blurVal}px)`;
+
+          ctx.save();
+          ctx.translate(w / 2, h / 2);
+          const scaleA = 1.0 + ease * 0.2;
+          ctx.scale(scaleA, scaleA);
+          ctx.globalAlpha = 1.0 - ease;
+          ctx.drawImage(imgA, -w / 2, -h / 2, w, h);
+          ctx.restore();
+
+          ctx.save();
+          ctx.translate(w / 2, h / 2);
+          const scaleB = 0.8 + ease * 0.2;
+          ctx.scale(scaleB, scaleB);
+          ctx.globalAlpha = ease;
+          ctx.drawImage(imgB, -w / 2, -h / 2, w, h);
+          ctx.restore();
+        } else if (type === 'glitch') {
+          // Deterministic horizontal slice glitch offsets
+          ctx.drawImage(imgA, 0, 0, w, h);
+          ctx.globalAlpha = alpha;
+          ctx.drawImage(imgB, 0, 0, w, h);
+
+          const glitchPeak = Math.sin(alpha * Math.PI);
+          if (glitchPeak > 0.15) {
+            const numSlices = 12;
+            const sliceHeight = h / numSlices;
+            // Seed a deterministic pseudo-random offset based on alpha value
+            for (let slice = 0; slice < numSlices; slice++) {
+              const pseudoRand = Math.sin(alpha * 1000 + slice * 23.45);
+              if (Math.abs(pseudoRand) > 0.4) {
+                const offset = pseudoRand * 40 * glitchPeak;
+                ctx.drawImage(
+                  canvas,
+                  0,
+                  slice * sliceHeight,
+                  w,
+                  sliceHeight,
+                  offset,
+                  slice * sliceHeight,
+                  w,
+                  sliceHeight
+                );
+              }
+            }
+          }
+        } else if (type === 'flash') {
+          ctx.drawImage(imgA, 0, 0, w, h);
+          ctx.globalAlpha = alpha;
+          ctx.drawImage(imgB, 0, 0, w, h);
+
+          const flashAlpha = Math.sin(alpha * Math.PI) * 0.8;
+          if (flashAlpha > 0) {
+            ctx.globalAlpha = flashAlpha;
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, w, h);
+          }
+        } else if (type === '3d-cube') {
+          // Horizontal cube flip simulation
+          ctx.save();
+          ctx.translate(w / 2, h / 2);
+          if (alpha < 0.5) {
+            const scaleX = 1.0 - alpha * 2;
+            ctx.transform(scaleX, 0.08 * alpha, 0, 1, 0, 0);
+            ctx.drawImage(imgA, -w / 2, -h / 2, w, h);
+          } else {
+            const scaleX = (alpha - 0.5) * 2;
+            ctx.transform(scaleX, -0.08 * (1 - alpha), 0, 1, 0, 0);
+            ctx.drawImage(imgB, -w / 2, -h / 2, w, h);
+          }
+          ctx.restore();
+        } else if (type === 'push') {
+          const ease = alpha < 0.5 ? 2 * alpha * alpha : 1 - Math.pow(-2 * alpha + 2, 2) / 2;
+          const shift = ease * w;
+          ctx.drawImage(imgA, -shift, 0, w, h);
+          ctx.drawImage(imgB, w - shift, 0, w, h);
+        } else if (type === 'swipe') {
+          const ease = alpha < 0.5 ? 2 * alpha * alpha : 1 - Math.pow(-2 * alpha + 2, 2) / 2;
+          const splitX = ease * w;
+          ctx.drawImage(imgA, 0, 0, w, h);
+
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(0, 0, splitX, h);
+          ctx.clip();
+          ctx.drawImage(imgB, 0, 0, w, h);
+          ctx.restore();
+        } else {
+          // Default fallback (fade)
+          ctx.drawImage(imgA, 0, 0, w, h);
+          ctx.globalAlpha = alpha;
+          ctx.drawImage(imgB, 0, 0, w, h);
+        }
 
         return canvas.toDataURL('image/png');
       },
@@ -57,6 +196,7 @@ async function blendFrameSequences(
         alpha: item.alpha,
         w: width,
         h: height,
+        type: item.type,
       }
     );
 
@@ -87,7 +227,13 @@ export async function processTransitions(
 
   const tmpDir = path.resolve(process.cwd(), 'tmp', runId);
   let currentSceneFrames = [...capturedScenes[0].framePaths];
-  const framesToBlend: { pathA: string; pathB: string; outputPath: string; alpha: number }[] = [];
+  const framesToBlend: {
+    pathA: string;
+    pathB: string;
+    outputPath: string;
+    alpha: number;
+    type: string;
+  }[] = [];
 
   for (let i = 0; i < capturedScenes.length - 1; i++) {
     const sceneA = config.scenes[i];
@@ -96,7 +242,7 @@ export async function processTransitions(
 
     const transition = sceneA.transition;
 
-    if (transition && transition.type === 'fade' && transition.duration > 0) {
+    if (transition && transition.type !== 'cut' && transition.duration > 0) {
       const transitionFrames = Math.round(transition.duration * fps);
       const actualTransitionFrames = Math.min(
         transitionFrames,
@@ -127,7 +273,7 @@ export async function processTransitions(
         const transitionPaths: string[] = [];
 
         for (let j = 0; j < actualTransitionFrames; j++) {
-          const alpha = j / (actualTransitionFrames - 1 || 1); // linear transition 0 -> 1
+          const alpha = j / (actualTransitionFrames - 1 || 1); // transition progression 0 -> 1
           const outPath = path.join(transitionDir, `frame-${String(j + 1).padStart(6, '0')}.png`);
 
           framesToBlend.push({
@@ -135,6 +281,7 @@ export async function processTransitions(
             pathB: overlapB[j],
             outputPath: outPath,
             alpha,
+            type: transition.type,
           });
           transitionPaths.push(outPath);
         }

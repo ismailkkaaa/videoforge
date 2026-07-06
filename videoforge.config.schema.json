@@ -102,7 +102,17 @@
                     "type": "string",
                     "enum": [
                       "cut",
-                      "fade"
+                      "fade",
+                      "blur",
+                      "zoom",
+                      "whip",
+                      "morph",
+                      "liquid",
+                      "glitch",
+                      "flash",
+                      "3d-cube",
+                      "push",
+                      "swipe"
                     ],
                     "default": "cut"
                   },

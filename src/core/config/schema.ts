@@ -20,7 +20,22 @@ export const ThemeSchema = z.object({
 });
 
 export const TransitionSchema = z.object({
-  type: z.enum(['cut', 'fade']).default('cut'),
+  type: z
+    .enum([
+      'cut',
+      'fade',
+      'blur',
+      'zoom',
+      'whip',
+      'morph',
+      'liquid',
+      'glitch',
+      'flash',
+      '3d-cube',
+      'push',
+      'swipe',
+    ])
+    .default('cut'),
   duration: z.number().nonnegative('Transition duration must be non-negative').default(0),
 });
 
