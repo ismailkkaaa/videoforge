@@ -1,11 +1,8 @@
 import type { VideoForgeTemplate, Theme } from '../../core/templates/types.js';
-import {
-  applyAnimatedGradient,
-  ParticleBackground,
-  splitTextToCharacters,
-  applyCameraMovement,
-  presets,
-} from '../../core/render/animations.js';
+import { splitTextToCharacters } from '../../core/render/animations.js';
+import { Ease, Duration as MotionDuration } from '../../core/motion/language.js';
+import { createCameraRig, type CameraRig } from '../../core/motion/camera-rig.js';
+import { mountBackground, type SceneBackground } from '../_shared/scene-background/index.js';
 
 export class TitleCardTemplate implements VideoForgeTemplate {
   private container!: HTMLElement;
@@ -13,7 +10,11 @@ export class TitleCardTemplate implements VideoForgeTemplate {
   private timeline: any = null;
   private duration: number = 3;
   private wrapper!: HTMLElement;
-  private particleBg: ParticleBackground | null = null;
+  private bgLayer!: HTMLElement;
+  private fgLayer!: HTMLElement;
+
+  private bg: SceneBackground | null = null;
+  private cameraRig: CameraRig | null = null;
 
   mount(container: HTMLElement, data: Record<string, unknown>, theme: Theme): void {
     this.container = container;
@@ -21,40 +22,75 @@ export class TitleCardTemplate implements VideoForgeTemplate {
 
     this.container.innerHTML = '';
 
-    // Create background wrapper (the camera viewport)
+    // Viewport wrapper
     this.wrapper = document.createElement('div');
     this.wrapper.style.width = '100%';
     this.wrapper.style.height = '100%';
-    this.wrapper.style.display = 'flex';
-    this.wrapper.style.flexDirection = 'column';
-    this.wrapper.style.justifyContent = 'center';
-    this.wrapper.style.alignItems = 'center';
-    this.wrapper.style.color = '#ffffff';
-    this.wrapper.style.fontFamily = theme.fontFamily;
-    this.wrapper.style.boxSizing = 'border-box';
-    this.wrapper.style.padding = '40px';
     this.wrapper.style.position = 'relative';
     this.wrapper.style.overflow = 'hidden';
+    this.wrapper.style.boxSizing = 'border-box';
+    this.wrapper.style.fontFamily = theme.fontFamily;
+    this.container.appendChild(this.wrapper);
 
-    // Particle canvas background
-    const canvas = document.createElement('canvas');
-    canvas.width = 1280;
-    canvas.height = 720;
-    canvas.style.position = 'absolute';
-    canvas.style.top = '0';
-    canvas.style.left = '0';
-    canvas.style.width = '100%';
-    canvas.style.height = '100%';
-    canvas.style.pointerEvents = 'none';
-    this.wrapper.appendChild(canvas);
+    // Background Layer
+    this.bgLayer = document.createElement('div');
+    this.bgLayer.style.position = 'absolute';
+    this.bgLayer.style.width = '100%';
+    this.bgLayer.style.height = '100%';
+    this.bgLayer.style.top = '0';
+    this.bgLayer.style.left = '0';
+    this.wrapper.appendChild(this.bgLayer);
 
-    this.particleBg = new ParticleBackground(canvas, 45);
+    // Mount atmospheric background
+    this.bg = mountBackground(
+      this.bgLayer,
+      theme.background || 'none',
+      theme,
+      (data._sceneId as string) || 'title-card'
+    );
 
-    // Content container
-    const content = document.createElement('div');
-    content.style.textAlign = 'center';
-    content.style.position = 'relative';
-    content.style.zIndex = '10';
+    // Foreground Layer
+    this.fgLayer = document.createElement('div');
+    this.fgLayer.style.position = 'absolute';
+    this.fgLayer.style.width = '100%';
+    this.fgLayer.style.height = '100%';
+    this.fgLayer.style.top = '0';
+    this.fgLayer.style.left = '0';
+    this.fgLayer.style.display = 'flex';
+    this.fgLayer.style.flexDirection = 'column';
+    this.fgLayer.style.justifyContent = 'center';
+    this.fgLayer.style.alignItems = 'center';
+    this.fgLayer.style.color = '#ffffff';
+    this.fgLayer.style.padding = '40px';
+    this.fgLayer.style.boxSizing = 'border-box';
+    this.wrapper.appendChild(this.fgLayer);
+
+    // Setup Camera Rig
+    this.cameraRig = createCameraRig(
+      { background: this.bgLayer, foreground: this.fgLayer },
+      { duration: this.duration, preset: 'ken-burns' }
+    );
+
+    // Content Box
+    const contentBox = document.createElement('div');
+    contentBox.style.textAlign = 'center';
+    contentBox.style.padding = '30px 50px';
+    contentBox.style.zIndex = '10';
+
+    // Apply Style Variants
+    if (theme.style === 'glass') {
+      contentBox.style.background = 'rgba(255, 255, 255, 0.08)';
+      contentBox.style.backdropFilter = 'blur(16px)';
+      (contentBox.style as any).webkitBackdropFilter = 'blur(16px)';
+      contentBox.style.border = '1px solid rgba(255, 255, 255, 0.12)';
+      contentBox.style.borderRadius = '24px';
+      contentBox.style.boxShadow = '0 12px 40px 0 rgba(0, 0, 0, 0.3)';
+    } else if (theme.style === 'bold-neon') {
+      contentBox.style.border = `2.5px solid ${theme.secondaryColor}`;
+      contentBox.style.boxShadow = `0 0 20px ${theme.secondaryColor}, inset 0 0 15px ${theme.secondaryColor}`;
+      contentBox.style.borderRadius = '12px';
+      contentBox.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
+    }
 
     // Title
     const titleEl = document.createElement('h1');
@@ -62,9 +98,12 @@ export class TitleCardTemplate implements VideoForgeTemplate {
     titleEl.style.fontSize = '80px';
     titleEl.style.margin = '0 0 20px 0';
     titleEl.style.fontWeight = '900';
-    titleEl.style.letterSpacing = '-2px';
+    titleEl.style.letterSpacing = '-2.5px';
     titleEl.style.color = theme.secondaryColor;
-    content.appendChild(titleEl);
+    if (theme.style === 'bold-neon') {
+      titleEl.style.textShadow = `0 0 12px ${theme.secondaryColor}`;
+    }
+    contentBox.appendChild(titleEl);
 
     // Subtitle
     let subtitleEl: HTMLParagraphElement | null = null;
@@ -76,38 +115,60 @@ export class TitleCardTemplate implements VideoForgeTemplate {
       subtitleEl.style.opacity = '0';
       subtitleEl.style.fontWeight = '500';
       subtitleEl.style.letterSpacing = '-0.5px';
-      content.appendChild(subtitleEl);
+      contentBox.appendChild(subtitleEl);
     }
 
-    this.wrapper.appendChild(content);
-    this.container.appendChild(this.wrapper);
+    this.fgLayer.appendChild(contentBox);
 
-    // Premium staggered typography animation
-    const chars = splitTextToCharacters(titleEl);
+    // Split text animation
+    const SplitTextClass = (window as any).SplitText;
+    let chars: HTMLElement[] = [];
+    if (SplitTextClass) {
+      const split = new SplitTextClass(titleEl, { type: 'chars' });
+      chars = split.chars;
+    } else {
+      chars = splitTextToCharacters(titleEl);
+    }
 
-    // Initialize GSAP animation
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // GSAP Setup
     const gsap = (window as any).gsap;
     if (gsap) {
       this.timeline = gsap.timeline({ paused: true });
 
-      // Stagger char animations (elastic springs)
+      // Stagger entrance using motion language presets
       chars.forEach((char, index) => {
         this.timeline.fromTo(
           char,
-          { opacity: 0, y: 40, scale: 0.8 },
-          { opacity: 1, y: 0, scale: 1, duration: 1.0, ease: 'back.out(1.8)' },
-          index * 0.03
+          { opacity: 0, y: 45, scale: 0.75 },
+          { opacity: 1, y: 0, scale: 1, duration: MotionDuration.base, ease: Ease.entrance },
+          index * 0.04
         );
       });
 
-      // Slide up subtitle
       if (subtitleEl) {
-        presets.slideUp(subtitleEl, this.timeline, 1.2, 0.4, 30);
+        this.timeline.fromTo(
+          subtitleEl,
+          { opacity: 0, y: 25 },
+          { opacity: 1, y: 0, duration: MotionDuration.base, ease: Ease.smooth },
+          0.4
+        );
       }
 
-      // Keep holding frame
-      this.timeline.to({}, { duration: Math.max(0, this.duration - 1.5) });
+      // Exit animations in final 20% of duration
+      const exitTime = this.duration * 0.8;
+      const exitDuration = this.duration * 0.2;
+
+      this.timeline.to(
+        contentBox,
+        {
+          opacity: 0,
+          scale: 0.9,
+          y: -30,
+          duration: exitDuration,
+          ease: Ease.exit,
+        },
+        exitTime
+      );
     }
   }
 
@@ -116,23 +177,24 @@ export class TitleCardTemplate implements VideoForgeTemplate {
   }
 
   seek(timeSeconds: number): void {
-    // Dynamic gradient shifts
-    applyAnimatedGradient(this.wrapper, timeSeconds);
-
-    // Deterministic particle positions updates
-    if (this.particleBg) {
-      this.particleBg.render(timeSeconds);
+    if (this.bg) {
+      this.bg.seek(timeSeconds);
     }
-
-    // Camera drift zoom
-    applyCameraMovement(this.wrapper, timeSeconds, this.duration, 'drift');
-
+    if (this.cameraRig) {
+      this.cameraRig.seek(timeSeconds);
+    }
     if (this.timeline) {
       this.timeline.seek(timeSeconds);
     }
   }
 
   destroy(): void {
+    if (this.bg && this.bg.destroy) {
+      this.bg.destroy();
+    }
+    if (this.cameraRig && this.cameraRig.destroy) {
+      this.cameraRig.destroy();
+    }
     if (this.timeline) {
       this.timeline.kill();
     }

@@ -183,7 +183,7 @@ export async function captureFrames(
         const evalStr = `
           (async () => {
             const path = ${JSON.stringify(templatePath)};
-            const data = ${JSON.stringify(scene.data)};
+            const data = { ...${JSON.stringify(scene.data)}, _sceneId: ${JSON.stringify(scene.id)} };
             const theme = ${JSON.stringify(config.theme)};
 
             const container = document.getElementById('container');

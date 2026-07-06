@@ -85,6 +85,17 @@ videoforge/
 
 ---
 
+## 🎨 Motion System
+
+VideoForge includes an advanced, 100% deterministic motion system for premium visuals:
+- **Shared Motion Language**: Standardized entrance, emphasis, exit eases and duration presets.
+- **Atmospheric Backgrounds**: Support for `gradient-mesh`, `particle-field`, and `grid-draw` animation base layers.
+- **Style Variants**: Supports `minimal` classic lines, translucent frosted `glass` panels (backdrop blur), and saturated `bold-neon` glow accents.
+- **Camera Rig**: Simulated parallax layer translations and Ken-Burns zoom drifts.
+- **Transitions Library**: Over 10 custom transition effects, including `fade`, `wipeleft`, `wiperight`, `slideleft`, `slideright`, `circleopen`, `zoomin`, `dissolve`, and `cut`.
+
+---
+
 ## 🗺 Roadmap
 
 - [ ] **Custom Template Plugins**: Allow loading custom scene templates from remote URLs or external directories.

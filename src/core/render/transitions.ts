@@ -53,7 +53,7 @@ async function blendFrameSequences(
         ctx.globalAlpha = 1.0;
         ctx.filter = 'none';
 
-        if (type === 'fade') {
+        if (type === 'fade' || type === 'dissolve') {
           ctx.drawImage(imgA, 0, 0, w, h);
           ctx.globalAlpha = alpha;
           ctx.drawImage(imgB, 0, 0, w, h);
@@ -64,7 +64,7 @@ async function blendFrameSequences(
           ctx.drawImage(imgA, 0, 0, w, h);
           ctx.globalAlpha = alpha;
           ctx.drawImage(imgB, 0, 0, w, h);
-        } else if (type === 'zoom') {
+        } else if (type === 'zoom' || type === 'zoomin') {
           // Zoom out/in transition
           const scaleA = 1.0 + alpha * 0.3;
           ctx.globalAlpha = 1.0 - alpha;
@@ -81,7 +81,7 @@ async function blendFrameSequences(
           ctx.scale(scaleB, scaleB);
           ctx.drawImage(imgB, -w / 2, -h / 2, w, h);
           ctx.restore();
-        } else if (type === 'whip') {
+        } else if (type === 'whip' || type === 'slideleft') {
           // Slide left with motion blur
           const ease = alpha < 0.5 ? 2 * alpha * alpha : 1 - Math.pow(-2 * alpha + 2, 2) / 2;
           const shift = ease * w;
@@ -90,6 +90,38 @@ async function blendFrameSequences(
 
           ctx.drawImage(imgA, -shift, 0, w, h);
           ctx.drawImage(imgB, w - shift, 0, w, h);
+        } else if (type === 'slideright') {
+          const ease = alpha < 0.5 ? 2 * alpha * alpha : 1 - Math.pow(-2 * alpha + 2, 2) / 2;
+          const shift = ease * w;
+          ctx.drawImage(imgA, shift, 0, w, h);
+          ctx.drawImage(imgB, -w + shift, 0, w, h);
+        } else if (type === 'wipeleft') {
+          const splitX = (1 - alpha) * w;
+          ctx.drawImage(imgA, 0, 0, w, h);
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(splitX, 0, w - splitX, h);
+          ctx.clip();
+          ctx.drawImage(imgB, 0, 0, w, h);
+          ctx.restore();
+        } else if (type === 'wiperight') {
+          const splitX = alpha * w;
+          ctx.drawImage(imgA, 0, 0, w, h);
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(0, 0, splitX, h);
+          ctx.clip();
+          ctx.drawImage(imgB, 0, 0, w, h);
+          ctx.restore();
+        } else if (type === 'circleopen') {
+          ctx.drawImage(imgA, 0, 0, w, h);
+          ctx.save();
+          ctx.beginPath();
+          const maxRadius = Math.sqrt((w / 2) ** 2 + (h / 2) ** 2);
+          ctx.arc(w / 2, h / 2, alpha * maxRadius, 0, Math.PI * 2);
+          ctx.clip();
+          ctx.drawImage(imgB, 0, 0, w, h);
+          ctx.restore();
         } else if (type === 'morph' || type === 'liquid') {
           // Smooth fluid scale-fade-blur morph
           const ease = alpha < 0.5 ? 2 * alpha * alpha : 1 - Math.pow(-2 * alpha + 2, 2) / 2;

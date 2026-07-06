@@ -1,0 +1,69 @@
+{
+  "$schema": "../../videoforge.config.schema.json",
+  "meta": {
+    "title": "VideoForge Motion Graphics Upgrade Demo",
+    "outputPath": "./output/videoforge-motion-demo.mp4",
+    "fps": 30,
+    "resolution": {
+      "width": 1280,
+      "height": 720
+    }
+  },
+  "theme": {
+    "primaryColor": "#0e0d16",
+    "secondaryColor": "#39ff14",
+    "fontFamily": "sans-serif",
+    "background": "particle-field",
+    "style": "glass"
+  },
+  "scenes": [
+    {
+      "id": "intro",
+      "template": "title-card",
+      "duration": 4.0,
+      "data": {
+        "title": "Premium Motion",
+        "subtitle": "Apple-quality animations rendered 100% locally."
+      },
+      "transition": {
+        "type": "wipeleft",
+        "duration": 1.2
+      }
+    },
+    {
+      "id": "features",
+      "template": "feature-grid",
+      "duration": 5.0,
+      "data": {
+        "title": "High-End Aesthetics",
+        "features": [
+          {
+            "title": "Glassmorphism UI",
+            "description": "Translucent cards with backdrop blur."
+          },
+          {
+            "title": "Camera Parallax",
+            "description": "Subtle multi-layer movements."
+          },
+          {
+            "title": "SVG Drawing",
+            "description": "Deterministic drawing timelines."
+          }
+        ]
+      },
+      "transition": {
+        "type": "circleopen",
+        "duration": 1.0
+      }
+    },
+    {
+      "id": "outro",
+      "template": "outro",
+      "duration": 4.0,
+      "data": {
+        "tagline": "Build stunning SaaS launch promos today!",
+        "link": "videoforge.dev"
+      }
+    }
+  ]
+}

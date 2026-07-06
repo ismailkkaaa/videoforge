@@ -1,10 +1,7 @@
 import type { VideoForgeTemplate, Theme } from '../../core/templates/types.js';
-import {
-  applyAnimatedGradient,
-  ParticleBackground,
-  applyCameraMovement,
-  presets,
-} from '../../core/render/animations.js';
+import { Ease, Duration as MotionDuration } from '../../core/motion/language.js';
+import { createCameraRig, type CameraRig } from '../../core/motion/camera-rig.js';
+import { mountBackground, type SceneBackground } from '../_shared/scene-background/index.js';
 
 export class LogoRevealTemplate implements VideoForgeTemplate {
   private container!: HTMLElement;
@@ -12,7 +9,11 @@ export class LogoRevealTemplate implements VideoForgeTemplate {
   private timeline: any = null;
   private duration: number = 4;
   private wrapper!: HTMLElement;
-  private particleBg: ParticleBackground | null = null;
+  private bgLayer!: HTMLElement;
+  private fgLayer!: HTMLElement;
+
+  private bg: SceneBackground | null = null;
+  private cameraRig: CameraRig | null = null;
 
   mount(container: HTMLElement, data: Record<string, unknown>, theme: Theme): void {
     this.container = container;
@@ -23,29 +24,50 @@ export class LogoRevealTemplate implements VideoForgeTemplate {
     this.wrapper = document.createElement('div');
     this.wrapper.style.width = '100%';
     this.wrapper.style.height = '100%';
-    this.wrapper.style.display = 'flex';
-    this.wrapper.style.flexDirection = 'column';
-    this.wrapper.style.justifyContent = 'center';
-    this.wrapper.style.alignItems = 'center';
-    this.wrapper.style.color = '#ffffff';
-    this.wrapper.style.fontFamily = theme.fontFamily;
-    this.wrapper.style.boxSizing = 'border-box';
     this.wrapper.style.position = 'relative';
     this.wrapper.style.overflow = 'hidden';
+    this.wrapper.style.boxSizing = 'border-box';
+    this.wrapper.style.fontFamily = theme.fontFamily;
+    this.container.appendChild(this.wrapper);
 
-    // Particle canvas background
-    const canvas = document.createElement('canvas');
-    canvas.width = 1280;
-    canvas.height = 720;
-    canvas.style.position = 'absolute';
-    canvas.style.top = '0';
-    canvas.style.left = '0';
-    canvas.style.width = '100%';
-    canvas.style.height = '100%';
-    canvas.style.pointerEvents = 'none';
-    this.wrapper.appendChild(canvas);
+    // Background Layer
+    this.bgLayer = document.createElement('div');
+    this.bgLayer.style.position = 'absolute';
+    this.bgLayer.style.width = '100%';
+    this.bgLayer.style.height = '100%';
+    this.bgLayer.style.top = '0';
+    this.bgLayer.style.left = '0';
+    this.wrapper.appendChild(this.bgLayer);
 
-    this.particleBg = new ParticleBackground(canvas, 40);
+    // Mount background
+    this.bg = mountBackground(
+      this.bgLayer,
+      theme.background || 'none',
+      theme,
+      (data._sceneId as string) || 'logo-reveal'
+    );
+
+    // Foreground Layer
+    this.fgLayer = document.createElement('div');
+    this.fgLayer.style.position = 'absolute';
+    this.fgLayer.style.width = '100%';
+    this.fgLayer.style.height = '100%';
+    this.fgLayer.style.top = '0';
+    this.fgLayer.style.left = '0';
+    this.fgLayer.style.display = 'flex';
+    this.fgLayer.style.flexDirection = 'column';
+    this.fgLayer.style.justifyContent = 'center';
+    this.fgLayer.style.alignItems = 'center';
+    this.fgLayer.style.color = '#ffffff';
+    this.fgLayer.style.padding = '40px';
+    this.fgLayer.style.boxSizing = 'border-box';
+    this.wrapper.appendChild(this.fgLayer);
+
+    // Camera Rig
+    this.cameraRig = createCameraRig(
+      { background: this.bgLayer, foreground: this.fgLayer },
+      { duration: this.duration, preset: 'ken-burns' }
+    );
 
     const logoContainer = document.createElement('div');
     logoContainer.style.display = 'flex';
@@ -53,6 +75,22 @@ export class LogoRevealTemplate implements VideoForgeTemplate {
     logoContainer.style.alignItems = 'center';
     logoContainer.style.position = 'relative';
     logoContainer.style.zIndex = '10';
+    logoContainer.style.padding = '35px 55px';
+
+    // Style Variants
+    if (theme.style === 'glass') {
+      logoContainer.style.background = 'rgba(255, 255, 255, 0.08)';
+      logoContainer.style.backdropFilter = 'blur(16px)';
+      (logoContainer.style as any).webkitBackdropFilter = 'blur(16px)';
+      logoContainer.style.border = '1px solid rgba(255, 255, 255, 0.12)';
+      logoContainer.style.borderRadius = '24px';
+      logoContainer.style.boxShadow = '0 12px 40px 0 rgba(0, 0, 0, 0.3)';
+    } else if (theme.style === 'bold-neon') {
+      logoContainer.style.border = `2.5px solid ${theme.secondaryColor}`;
+      logoContainer.style.boxShadow = `0 0 20px ${theme.secondaryColor}, inset 0 0 15px ${theme.secondaryColor}`;
+      logoContainer.style.borderRadius = '12px';
+      logoContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
+    }
 
     let logoTarget: HTMLElement;
 
@@ -74,6 +112,9 @@ export class LogoRevealTemplate implements VideoForgeTemplate {
       textLogo.style.border = `4px solid ${theme.secondaryColor}`;
       textLogo.style.borderRadius = '8px';
       textLogo.style.opacity = '0';
+      if (theme.style === 'bold-neon') {
+        textLogo.style.textShadow = `0 0 10px ${theme.secondaryColor}`;
+      }
       logoContainer.appendChild(textLogo);
       logoTarget = textLogo;
     }
@@ -97,27 +138,52 @@ export class LogoRevealTemplate implements VideoForgeTemplate {
       logoContainer.appendChild(subtitleEl);
     }
 
-    this.wrapper.appendChild(logoContainer);
-    this.container.appendChild(this.wrapper);
+    this.fgLayer.appendChild(logoContainer);
 
     // GSAP animation
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const gsap = (window as any).gsap;
     if (gsap) {
       this.timeline = gsap.timeline({ paused: true });
 
-      // Premium pop in spring for logo
-      presets.popIn(logoTarget, this.timeline, 1.2, 0);
+      // Premium pop in spring for logo using entrance ease
+      this.timeline.fromTo(
+        logoTarget,
+        { opacity: 0, scale: 0.5 },
+        { opacity: 1, scale: 1, duration: MotionDuration.base, ease: Ease.entrance },
+        0
+      );
 
-      // Slide up text elements
-      presets.slideUp(titleEl, this.timeline, 1.0, 0.4, 25);
+      // Slide up text elements using Smooth ease
+      this.timeline.fromTo(
+        titleEl,
+        { opacity: 0, y: 30 },
+        { opacity: 1, y: 0, duration: MotionDuration.base, ease: Ease.smooth },
+        0.3
+      );
+
       if (subtitleEl) {
-        presets.slideUp(subtitleEl, this.timeline, 1.0, 0.6, 25);
+        this.timeline.fromTo(
+          subtitleEl,
+          { opacity: 0, y: 20 },
+          { opacity: 1, y: 0, duration: MotionDuration.base, ease: Ease.smooth },
+          0.5
+        );
       }
 
+      // Exit animations in final 20% of duration
+      const exitTime = this.duration * 0.8;
+      const exitDuration = this.duration * 0.2;
+
       this.timeline.to(
-        {},
-        { duration: Math.max(0, this.duration - (this.timeline.duration() || 2.5)) }
+        logoContainer,
+        {
+          opacity: 0,
+          scale: 0.9,
+          y: -20,
+          duration: exitDuration,
+          ease: Ease.exit,
+        },
+        exitTime
       );
     }
   }
@@ -127,20 +193,24 @@ export class LogoRevealTemplate implements VideoForgeTemplate {
   }
 
   seek(timeSeconds: number): void {
-    applyAnimatedGradient(this.wrapper, timeSeconds);
-
-    if (this.particleBg) {
-      this.particleBg.render(timeSeconds);
+    if (this.bg) {
+      this.bg.seek(timeSeconds);
     }
-
-    applyCameraMovement(this.wrapper, timeSeconds, this.duration, 'zoom');
-
+    if (this.cameraRig) {
+      this.cameraRig.seek(timeSeconds);
+    }
     if (this.timeline) {
       this.timeline.seek(timeSeconds);
     }
   }
 
   destroy(): void {
+    if (this.bg && this.bg.destroy) {
+      this.bg.destroy();
+    }
+    if (this.cameraRig && this.cameraRig.destroy) {
+      this.cameraRig.destroy();
+    }
     if (this.timeline) {
       this.timeline.kill();
     }

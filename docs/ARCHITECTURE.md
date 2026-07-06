@@ -38,3 +38,10 @@ VideoForge can be run in four different modes, all wrapping the underlying core 
 - **GSAP Animations**: Built-in template cards (`title-card`, `feature-grid`, `code-snippet`, `logo-reveal`, `stat-counter`, `quote`, `outro`) configure animations that run frame-by-frame via playheads.
 - **Transitions canvas blender**: Blends frames in-browser using a linear opacity Canvas blender to perform fades and cuts.
 - **FFmpeg encoder wrapper**: Compresses PNG frames into individual MP4 files, then merges them using demuxers.
+
+### 4. Motion System & Determinism
+- **Seeded PRNG**: Mulberry32-based seeded PRNG provides deterministic numbers for layout adjustments, offset variations, and particle systems, ensuring frame-by-frame reproducibility.
+- **Camera Rig**: Layer-based camera system simulates parallax depth drifts and Ken-Burns zoom animations.
+- **Atmospheric Backgrounds**: Seamlessly rendering particle fields, grid line draws, and animated gradient meshes globally behind scene contents.
+- **Style Variants**: Supports `minimal` (baseline classic), `glass` (translucent panels, backdrop blur), and `bold-neon` (saturated glow shadow accents) layout properties.
+

@@ -17,6 +17,8 @@ export const ThemeSchema = z.object({
   secondaryColor: z.string().min(1, 'secondaryColor must not be empty'),
   fontFamily: z.string().min(1, 'fontFamily must not be empty'),
   logoPath: z.string().optional(),
+  background: z.enum(['none', 'gradient-mesh', 'particle-field', 'grid-draw']).default('none'),
+  style: z.enum(['minimal', 'bold-neon', 'glass']).default('minimal'),
 });
 
 export const TransitionSchema = z.object({
@@ -34,6 +36,13 @@ export const TransitionSchema = z.object({
       '3d-cube',
       'push',
       'swipe',
+      'wipeleft',
+      'wiperight',
+      'slideleft',
+      'slideright',
+      'circleopen',
+      'zoomin',
+      'dissolve',
     ])
     .default('cut'),
   duration: z.number().nonnegative('Transition duration must be non-negative').default(0),

@@ -3,6 +3,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { seededRandom } from '../../src/core/motion/seeded-random.js';
 import { Ease, Duration } from '../../src/core/motion/language.js';
 import { createCameraRig } from '../../src/core/motion/camera-rig.js';
+import { mountBackground } from '../../src/templates-builtin/_shared/scene-background/index.js';
 
 describe('Motion System Primitives Unit Tests', () => {
   beforeAll(() => {
@@ -99,5 +100,65 @@ describe('Motion System Primitives Unit Tests', () => {
     rig.seek(2.0);
     expect(bg.style.transform).toBe('translateY(0px)');
     expect(fg.style.transform).toBe('translateY(0px)');
+  });
+
+  it('should verify particle-field positions are identical across two separate mounts using the same seed', () => {
+    const theme = {
+      primaryColor: '#000000',
+      secondaryColor: '#ffffff',
+      fontFamily: 'sans-serif',
+      background: 'particle-field' as const,
+    };
+
+    const container1 = document.createElement('div');
+    const container2 = document.createElement('div');
+
+    const drawnPoints1: { x: number; y: number }[] = [];
+    const drawnPoints2: { x: number; y: number }[] = [];
+
+    // Mock HTMLCanvasElement.prototype.getContext to capture drawing
+    const originalGetContext = HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.getContext = function (type: string, ...args: any[]) {
+      if (type === '2d') {
+        const dummyCtx = {
+          clearRect: () => {},
+          beginPath: () => {},
+          arc: (x: number, y: number) => {
+            drawnPoints1.push({ x, y });
+          },
+          fill: () => {},
+        };
+        return dummyCtx as any;
+      }
+      return originalGetContext.apply(this, args as any);
+    } as any;
+
+    const bg1 = mountBackground(container1, 'particle-field', theme, 'scene-abc');
+    bg1.seek(1.5);
+
+    // Swap capture target
+    HTMLCanvasElement.prototype.getContext = function (type: string, ...args: any[]) {
+      if (type === '2d') {
+        const dummyCtx = {
+          clearRect: () => {},
+          beginPath: () => {},
+          arc: (x: number, y: number) => {
+            drawnPoints2.push({ x, y });
+          },
+          fill: () => {},
+        };
+        return dummyCtx as any;
+      }
+      return originalGetContext.apply(this, args as any);
+    } as any;
+
+    const bg2 = mountBackground(container2, 'particle-field', theme, 'scene-abc');
+    bg2.seek(1.5);
+
+    // Revert context mock
+    HTMLCanvasElement.prototype.getContext = originalGetContext;
+
+    expect(drawnPoints1.length).toBeGreaterThan(0);
+    expect(drawnPoints1).toEqual(drawnPoints2);
   });
 });

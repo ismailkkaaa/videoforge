@@ -1,11 +1,7 @@
 import type { VideoForgeTemplate, Theme } from '../../core/templates/types.js';
-import {
-  applyAnimatedGradient,
-  ParticleBackground,
-  applyCameraMovement,
-  applyGlassmorphism,
-  presets,
-} from '../../core/render/animations.js';
+import { Ease, Duration as MotionDuration } from '../../core/motion/language.js';
+import { createCameraRig, type CameraRig } from '../../core/motion/camera-rig.js';
+import { mountBackground, type SceneBackground } from '../_shared/scene-background/index.js';
 
 export class QuoteTemplate implements VideoForgeTemplate {
   private container!: HTMLElement;
@@ -13,7 +9,11 @@ export class QuoteTemplate implements VideoForgeTemplate {
   private timeline: any = null;
   private duration: number = 5;
   private wrapper!: HTMLElement;
-  private particleBg: ParticleBackground | null = null;
+  private bgLayer!: HTMLElement;
+  private fgLayer!: HTMLElement;
+
+  private bg: SceneBackground | null = null;
+  private cameraRig: CameraRig | null = null;
 
   mount(container: HTMLElement, data: Record<string, unknown>, theme: Theme): void {
     this.container = container;
@@ -24,30 +24,50 @@ export class QuoteTemplate implements VideoForgeTemplate {
     this.wrapper = document.createElement('div');
     this.wrapper.style.width = '100%';
     this.wrapper.style.height = '100%';
-    this.wrapper.style.display = 'flex';
-    this.wrapper.style.flexDirection = 'column';
-    this.wrapper.style.justifyContent = 'center';
-    this.wrapper.style.alignItems = 'center';
-    this.wrapper.style.color = '#ffffff';
-    this.wrapper.style.fontFamily = theme.fontFamily;
-    this.wrapper.style.boxSizing = 'border-box';
-    this.wrapper.style.padding = '80px';
     this.wrapper.style.position = 'relative';
     this.wrapper.style.overflow = 'hidden';
+    this.wrapper.style.boxSizing = 'border-box';
+    this.wrapper.style.fontFamily = theme.fontFamily;
+    this.container.appendChild(this.wrapper);
 
-    // Particle canvas background
-    const canvas = document.createElement('canvas');
-    canvas.width = 1280;
-    canvas.height = 720;
-    canvas.style.position = 'absolute';
-    canvas.style.top = '0';
-    canvas.style.left = '0';
-    canvas.style.width = '100%';
-    canvas.style.height = '100%';
-    canvas.style.pointerEvents = 'none';
-    this.wrapper.appendChild(canvas);
+    // Background Layer
+    this.bgLayer = document.createElement('div');
+    this.bgLayer.style.position = 'absolute';
+    this.bgLayer.style.width = '100%';
+    this.bgLayer.style.height = '100%';
+    this.bgLayer.style.top = '0';
+    this.bgLayer.style.left = '0';
+    this.wrapper.appendChild(this.bgLayer);
 
-    this.particleBg = new ParticleBackground(canvas, 30);
+    // Mount background
+    this.bg = mountBackground(
+      this.bgLayer,
+      theme.background || 'none',
+      theme,
+      (data._sceneId as string) || 'quote'
+    );
+
+    // Foreground Layer
+    this.fgLayer = document.createElement('div');
+    this.fgLayer.style.position = 'absolute';
+    this.fgLayer.style.width = '100%';
+    this.fgLayer.style.height = '100%';
+    this.fgLayer.style.top = '0';
+    this.fgLayer.style.left = '0';
+    this.fgLayer.style.display = 'flex';
+    this.fgLayer.style.flexDirection = 'column';
+    this.fgLayer.style.justifyContent = 'center';
+    this.fgLayer.style.alignItems = 'center';
+    this.fgLayer.style.color = '#ffffff';
+    this.fgLayer.style.padding = '80px';
+    this.fgLayer.style.boxSizing = 'border-box';
+    this.wrapper.appendChild(this.fgLayer);
+
+    // Camera Rig
+    this.cameraRig = createCameraRig(
+      { background: this.bgLayer, foreground: this.fgLayer },
+      { duration: this.duration, preset: 'parallax' }
+    );
 
     const quoteCard = document.createElement('div');
     quoteCard.style.maxWidth = '800px';
@@ -55,11 +75,26 @@ export class QuoteTemplate implements VideoForgeTemplate {
     quoteCard.style.textAlign = 'center';
     quoteCard.style.position = 'relative';
     quoteCard.style.zIndex = '10';
-    applyGlassmorphism(
-      quoteCard,
-      'rgba(255, 255, 255, 0.04)',
-      '1px solid rgba(255, 255, 255, 0.1)'
-    );
+
+    // Apply Style Variants
+    if (theme.style === 'glass') {
+      quoteCard.style.background = 'rgba(255, 255, 255, 0.08)';
+      quoteCard.style.backdropFilter = 'blur(16px)';
+      (quoteCard.style as any).webkitBackdropFilter = 'blur(16px)';
+      quoteCard.style.border = '1px solid rgba(255, 255, 255, 0.12)';
+      quoteCard.style.borderRadius = '24px';
+      quoteCard.style.boxShadow = '0 12px 40px 0 rgba(0, 0, 0, 0.3)';
+    } else if (theme.style === 'bold-neon') {
+      quoteCard.style.border = `2.5px solid ${theme.secondaryColor}`;
+      quoteCard.style.boxShadow = `0 0 20px ${theme.secondaryColor}, inset 0 0 15px ${theme.secondaryColor}`;
+      quoteCard.style.borderRadius = '12px';
+      quoteCard.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
+    } else {
+      // Default minimal quote container
+      quoteCard.style.background = 'rgba(255, 255, 255, 0.04)';
+      quoteCard.style.border = '1px solid rgba(255, 255, 255, 0.1)';
+      quoteCard.style.borderRadius = '16px';
+    }
 
     const quoteMarkStart = document.createElement('span');
     quoteMarkStart.textContent = '“';
@@ -105,25 +140,50 @@ export class QuoteTemplate implements VideoForgeTemplate {
       authorEl.appendChild(authorTitle);
     }
 
-    this.wrapper.appendChild(quoteCard);
-    this.container.appendChild(this.wrapper);
+    this.fgLayer.appendChild(quoteCard);
 
     // GSAP animation
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const gsap = (window as any).gsap;
     if (gsap) {
       this.timeline = gsap.timeline({ paused: true });
 
-      // Spring pop in of quoteCard
-      presets.popIn(quoteCard, this.timeline, 1.2, 0);
+      // Spring entrance using Ease.entrance
+      this.timeline.fromTo(
+        quoteCard,
+        { opacity: 0, scale: 0.8 },
+        { opacity: 1, scale: 1, duration: MotionDuration.base, ease: Ease.entrance },
+        0
+      );
 
       // Slide and fade text
-      presets.slideUp(quoteText, this.timeline, 1.0, 0.3, 20);
-      presets.slideUp(authorEl, this.timeline, 0.8, 0.7, 15);
+      this.timeline.fromTo(
+        quoteText,
+        { opacity: 0, y: 25 },
+        { opacity: 1, y: 0, duration: MotionDuration.base, ease: Ease.smooth },
+        0.3
+      );
+
+      this.timeline.fromTo(
+        authorEl,
+        { opacity: 0, y: 15 },
+        { opacity: 1, y: 0, duration: MotionDuration.base, ease: Ease.smooth },
+        0.5
+      );
+
+      // Exit animations in final 20% of duration
+      const exitTime = this.duration * 0.8;
+      const exitDuration = this.duration * 0.2;
 
       this.timeline.to(
-        {},
-        { duration: Math.max(0, this.duration - (this.timeline.duration() || 3.0)) }
+        quoteCard,
+        {
+          opacity: 0,
+          scale: 0.9,
+          y: -25,
+          duration: exitDuration,
+          ease: Ease.exit,
+        },
+        exitTime
       );
     }
   }
@@ -133,20 +193,24 @@ export class QuoteTemplate implements VideoForgeTemplate {
   }
 
   seek(timeSeconds: number): void {
-    applyAnimatedGradient(this.wrapper, timeSeconds);
-
-    if (this.particleBg) {
-      this.particleBg.render(timeSeconds);
+    if (this.bg) {
+      this.bg.seek(timeSeconds);
     }
-
-    applyCameraMovement(this.wrapper, timeSeconds, this.duration, 'zoom');
-
+    if (this.cameraRig) {
+      this.cameraRig.seek(timeSeconds);
+    }
     if (this.timeline) {
       this.timeline.seek(timeSeconds);
     }
   }
 
   destroy(): void {
+    if (this.bg && this.bg.destroy) {
+      this.bg.destroy();
+    }
+    if (this.cameraRig && this.cameraRig.destroy) {
+      this.cameraRig.destroy();
+    }
     if (this.timeline) {
       this.timeline.kill();
     }

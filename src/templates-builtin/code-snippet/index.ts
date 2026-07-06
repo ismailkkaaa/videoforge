@@ -1,11 +1,7 @@
 import type { VideoForgeTemplate, Theme } from '../../core/templates/types.js';
-import {
-  applyAnimatedGradient,
-  ParticleBackground,
-  applyCameraMovement,
-  applyGlassmorphism,
-  presets,
-} from '../../core/render/animations.js';
+import { Ease, Duration as MotionDuration } from '../../core/motion/language.js';
+import { createCameraRig, type CameraRig } from '../../core/motion/camera-rig.js';
+import { mountBackground, type SceneBackground } from '../_shared/scene-background/index.js';
 
 export class CodeSnippetTemplate implements VideoForgeTemplate {
   private container!: HTMLElement;
@@ -13,7 +9,11 @@ export class CodeSnippetTemplate implements VideoForgeTemplate {
   private timeline: any = null;
   private duration: number = 6;
   private wrapper!: HTMLElement;
-  private particleBg: ParticleBackground | null = null;
+  private bgLayer!: HTMLElement;
+  private fgLayer!: HTMLElement;
+
+  private bg: SceneBackground | null = null;
+  private cameraRig: CameraRig | null = null;
 
   mount(container: HTMLElement, data: Record<string, unknown>, theme: Theme): void {
     this.container = container;
@@ -24,30 +24,50 @@ export class CodeSnippetTemplate implements VideoForgeTemplate {
     this.wrapper = document.createElement('div');
     this.wrapper.style.width = '100%';
     this.wrapper.style.height = '100%';
-    this.wrapper.style.display = 'flex';
-    this.wrapper.style.flexDirection = 'column';
-    this.wrapper.style.justifyContent = 'center';
-    this.wrapper.style.alignItems = 'center';
-    this.wrapper.style.color = '#ffffff';
-    this.wrapper.style.fontFamily = theme.fontFamily;
-    this.wrapper.style.boxSizing = 'border-box';
-    this.wrapper.style.padding = '50px';
     this.wrapper.style.position = 'relative';
     this.wrapper.style.overflow = 'hidden';
+    this.wrapper.style.boxSizing = 'border-box';
+    this.wrapper.style.fontFamily = theme.fontFamily;
+    this.container.appendChild(this.wrapper);
 
-    // Particle canvas background
-    const canvas = document.createElement('canvas');
-    canvas.width = 1280;
-    canvas.height = 720;
-    canvas.style.position = 'absolute';
-    canvas.style.top = '0';
-    canvas.style.left = '0';
-    canvas.style.width = '100%';
-    canvas.style.height = '100%';
-    canvas.style.pointerEvents = 'none';
-    this.wrapper.appendChild(canvas);
+    // Background Layer
+    this.bgLayer = document.createElement('div');
+    this.bgLayer.style.position = 'absolute';
+    this.bgLayer.style.width = '100%';
+    this.bgLayer.style.height = '100%';
+    this.bgLayer.style.top = '0';
+    this.bgLayer.style.left = '0';
+    this.wrapper.appendChild(this.bgLayer);
 
-    this.particleBg = new ParticleBackground(canvas, 30);
+    // Mount background
+    this.bg = mountBackground(
+      this.bgLayer,
+      theme.background || 'none',
+      theme,
+      (data._sceneId as string) || 'code-snippet'
+    );
+
+    // Foreground Layer
+    this.fgLayer = document.createElement('div');
+    this.fgLayer.style.position = 'absolute';
+    this.fgLayer.style.width = '100%';
+    this.fgLayer.style.height = '100%';
+    this.fgLayer.style.top = '0';
+    this.fgLayer.style.left = '0';
+    this.fgLayer.style.display = 'flex';
+    this.fgLayer.style.flexDirection = 'column';
+    this.fgLayer.style.justifyContent = 'center';
+    this.fgLayer.style.alignItems = 'center';
+    this.fgLayer.style.color = '#ffffff';
+    this.fgLayer.style.padding = '50px';
+    this.fgLayer.style.boxSizing = 'border-box';
+    this.wrapper.appendChild(this.fgLayer);
+
+    // Camera Rig setup
+    this.cameraRig = createCameraRig(
+      { background: this.bgLayer, foreground: this.fgLayer },
+      { duration: this.duration, preset: 'parallax' }
+    );
 
     const header = document.createElement('div');
     header.style.width = '100%';
@@ -67,6 +87,9 @@ export class CodeSnippetTemplate implements VideoForgeTemplate {
       titleEl.style.fontWeight = '800';
       titleEl.style.letterSpacing = '-0.8px';
       titleEl.style.color = '#ffffff';
+      if (theme.style === 'bold-neon') {
+        titleEl.style.textShadow = `0 0 10px ${theme.secondaryColor}`;
+      }
       header.appendChild(titleEl);
     }
 
@@ -80,17 +103,35 @@ export class CodeSnippetTemplate implements VideoForgeTemplate {
     langBadge.style.fontWeight = '800';
     header.appendChild(langBadge);
 
-    this.wrapper.appendChild(header);
+    this.fgLayer.appendChild(header);
 
-    // Create the macOS-style code IDE window
+    // IDE window frame
     const windowFrame = document.createElement('div');
     windowFrame.style.width = '100%';
     windowFrame.style.maxWidth = '900px';
     windowFrame.style.position = 'relative';
     windowFrame.style.zIndex = '10';
-    applyGlassmorphism(windowFrame, 'rgba(15, 15, 27, 0.4)', '1px solid rgba(255, 255, 255, 0.12)');
 
-    // Mac dots titlebar
+    // Style Variants for IDE Window
+    if (theme.style === 'glass') {
+      windowFrame.style.background = 'rgba(255, 255, 255, 0.08)';
+      windowFrame.style.backdropFilter = 'blur(16px)';
+      (windowFrame.style as any).webkitBackdropFilter = 'blur(16px)';
+      windowFrame.style.border = '1px solid rgba(255, 255, 255, 0.12)';
+      windowFrame.style.borderRadius = '20px';
+      windowFrame.style.boxShadow = '0 12px 40px rgba(0, 0, 0, 0.3)';
+    } else if (theme.style === 'bold-neon') {
+      windowFrame.style.border = `2px solid ${theme.secondaryColor}`;
+      windowFrame.style.boxShadow = `0 0 15px ${theme.secondaryColor}`;
+      windowFrame.style.borderRadius = '12px';
+      windowFrame.style.backgroundColor = 'rgba(10, 10, 20, 0.85)';
+    } else {
+      // Minimal default
+      windowFrame.style.background = 'rgba(15, 15, 27, 0.6)';
+      windowFrame.style.border = '1px solid rgba(255, 255, 255, 0.1)';
+      windowFrame.style.borderRadius = '16px';
+    }
+
     const titleBar = document.createElement('div');
     titleBar.style.display = 'flex';
     titleBar.style.alignItems = 'center';
@@ -124,26 +165,35 @@ export class CodeSnippetTemplate implements VideoForgeTemplate {
     codeEl.textContent = typeof data.code === 'string' ? data.code : '';
     preEl.appendChild(codeEl);
     windowFrame.appendChild(preEl);
-    this.wrapper.appendChild(windowFrame);
-
-    this.container.appendChild(this.wrapper);
+    this.fgLayer.appendChild(windowFrame);
 
     // Apply Prism highlighting
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const Prism = (window as any).Prism;
     if (Prism) {
       Prism.highlightElement(codeEl);
     }
 
     // GSAP animation
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const gsap = (window as any).gsap;
     if (gsap) {
       this.timeline = gsap.timeline({ paused: true });
-      presets.slideDown(header, this.timeline, 0.8, 0, 20);
-      presets.scaleUp(windowFrame, this.timeline, 1.0, 0.2);
 
-      // Line or token reveal (simple fade in of all generated spans)
+      // Stagger in header and window
+      this.timeline.fromTo(
+        header,
+        { opacity: 0, y: -20 },
+        { opacity: 1, y: 0, duration: MotionDuration.base, ease: Ease.smooth },
+        0
+      );
+
+      this.timeline.fromTo(
+        windowFrame,
+        { opacity: 0, scale: 0.9, y: 30 },
+        { opacity: 1, scale: 1, y: 0, duration: MotionDuration.base, ease: Ease.entrance },
+        0.1
+      );
+
+      // Line or token reveal stagger
       const tokens = codeEl.querySelectorAll('span');
       if (tokens.length > 0) {
         this.timeline.fromTo(
@@ -155,12 +205,25 @@ export class CodeSnippetTemplate implements VideoForgeTemplate {
             stagger: 0.015,
             ease: 'none',
           },
-          0.6
+          0.5
         );
       }
+
+      // Exit animations in final 20% of duration
+      const exitTime = this.duration * 0.8;
+      const exitDuration = this.duration * 0.2;
+
       this.timeline.to(
-        {},
-        { duration: Math.max(0, this.duration - (this.timeline.duration() || 3)) }
+        [header, windowFrame],
+        {
+          opacity: 0,
+          scale: 0.95,
+          y: -25,
+          duration: exitDuration,
+          ease: Ease.exit,
+          stagger: 0.05,
+        },
+        exitTime
       );
     }
   }
@@ -170,20 +233,24 @@ export class CodeSnippetTemplate implements VideoForgeTemplate {
   }
 
   seek(timeSeconds: number): void {
-    applyAnimatedGradient(this.wrapper, timeSeconds);
-
-    if (this.particleBg) {
-      this.particleBg.render(timeSeconds);
+    if (this.bg) {
+      this.bg.seek(timeSeconds);
     }
-
-    applyCameraMovement(this.wrapper, timeSeconds, this.duration, 'zoom');
-
+    if (this.cameraRig) {
+      this.cameraRig.seek(timeSeconds);
+    }
     if (this.timeline) {
       this.timeline.seek(timeSeconds);
     }
   }
 
   destroy(): void {
+    if (this.bg && this.bg.destroy) {
+      this.bg.destroy();
+    }
+    if (this.cameraRig && this.cameraRig.destroy) {
+      this.cameraRig.destroy();
+    }
     if (this.timeline) {
       this.timeline.kill();
     }

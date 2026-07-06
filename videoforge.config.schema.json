@@ -64,6 +64,25 @@
             },
             "logoPath": {
               "type": "string"
+            },
+            "background": {
+              "type": "string",
+              "enum": [
+                "none",
+                "gradient-mesh",
+                "particle-field",
+                "grid-draw"
+              ],
+              "default": "none"
+            },
+            "style": {
+              "type": "string",
+              "enum": [
+                "minimal",
+                "bold-neon",
+                "glass"
+              ],
+              "default": "minimal"
             }
           },
           "required": [
@@ -112,7 +131,14 @@
                       "flash",
                       "3d-cube",
                       "push",
-                      "swipe"
+                      "swipe",
+                      "wipeleft",
+                      "wiperight",
+                      "slideleft",
+                      "slideright",
+                      "circleopen",
+                      "zoomin",
+                      "dissolve"
                     ],
                     "default": "cut"
                   },
