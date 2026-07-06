@@ -59,6 +59,13 @@ export async function captureFrames(
 
     const page = await context.newPage();
 
+    page.on('console', (msg) => {
+      console.log(`[Browser Console] ${msg.type()}: ${msg.text()}`);
+    });
+    page.on('pageerror', (err) => {
+      console.error(`[Browser Page Error] ${err.message}`);
+    });
+
     // Enable request interception to serve local renderer shell, GSAP, and templates
     await page.route('**/*', (route) => {
       const url = new URL(route.request().url());
@@ -176,12 +183,22 @@ export async function captureFrames(
       const templatePath = `/src/templates-builtin/${scene.template}/index.js`;
 
       try {
-        const mountFunctionStr = `
-          async ({ path, data, theme }) => {
+        const evalStr = `
+          (async () => {
+            const path = ${JSON.stringify(templatePath)};
+            const data = ${JSON.stringify(scene.data)};
+            const theme = ${JSON.stringify(config.theme)};
+
+            console.log("Starting mount for path:", path);
             const container = document.getElementById('container');
+            if (!container) {
+              throw new Error("No container element found!");
+            }
             container.innerHTML = '';
 
+            console.log("Importing module:", path);
             const mod = await import(path);
+            console.log("Module imported. Keys:", Object.keys(mod));
             let TemplateClass = mod.default;
             if (!TemplateClass) {
               const keys = Object.keys(mod);
@@ -201,17 +218,14 @@ export async function captureFrames(
               throw new Error("Could not find a valid template class in module " + path);
             }
 
+            console.log("Instantiating and mounting template...");
             const instance = new TemplateClass();
             await instance.mount(container, data, theme);
+            console.log("Template mounted. DOM populated.");
             window.__currentTemplate = instance;
-          }
+          })()
         `;
-
-        await page.evaluate(mountFunctionStr, {
-          path: templatePath,
-          data: scene.data,
-          theme: config.theme,
-        });
+        await page.evaluate(evalStr);
       } catch (err) {
         const error = err as Error;
         throw new RenderError(
