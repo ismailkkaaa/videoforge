@@ -118,3 +118,30 @@ import { MyCustomTemplate } from './MyCustomTemplate.js';
 
 registerTemplate('my-custom-template', MyCustomTemplate);
 ```
+
+---
+
+## 🎨 Motion System & Language Guidelines
+
+To build premium, Apple-quality motion graphics that compile and render deterministically, all templates should follow these strict guidelines:
+
+### 1. Eases and Durations
+Instead of hardcoding easing strings and duration numbers, use the shared vocabulary from `src/core/motion/language.js`:
+- `Ease.entrance`: Spring-like back entry for text and widgets (`'back.out(1.4)'`).
+- `Ease.emphasis`: Spring bouncy response for pops and highlights (`'elastic.out(1, 0.5)'`).
+- `Ease.exit`: Clean snap-out for scene exits (`'power2.in'`).
+- `Ease.smooth`: Balanced ease in-out curve (`'power3.inOut'`).
+- `Duration.fast`: Short transitions and small widget offsets (`0.4s`).
+- `Duration.base`: Standard animation sequence time (`0.7s`).
+- `Duration.slow`: Deep structural entrance transitions (`1.2s`).
+
+### 2. Strictly Enforced Determinism
+Every scene template must be 100% reproducible inside Playwright's frame capture.
+*   **Banned**: Do not use `Math.random()`, `Date.now()`, or other system-level dynamic values.
+*   **Seeded PRNG**: If you need variations (e.g. particle positions, offset shifts), import the seeded generator:
+    ```typescript
+    import { seededRandom } from '../../core/motion/seeded-random.js';
+    const nextRand = seededRandom(sceneId); // Produces identical numbers every time for this scene
+    ```
+*   **No Real-Time Tickers**: Do not use `gsap.ticker`, `requestAnimationFrame`, `setInterval`, or accumulative loops. All animation positions must depend strictly on the time `t` passed into `seek(t)`.
+

@@ -93,7 +93,11 @@ export async function captureFrames(
 <body>
   <div id="container"></div>
   <script src="/node_modules/gsap/dist/gsap.min.js"></script>
+  <script src="/node_modules/gsap/dist/SplitText.min.js"></script>
+  <script src="/node_modules/gsap/dist/MorphSVGPlugin.min.js"></script>
+  <script src="/node_modules/gsap/dist/DrawSVGPlugin.min.js"></script>
   <script src="/node_modules/prismjs/prism.js"></script>
+  <script type="module" src="/src/core/motion/gsap-setup.js"></script>
 </body>
 </html>`;
         route.fulfill({
